@@ -1,5 +1,5 @@
 """
-RRT-Dirtrel Implementation
+Run RRT Dirtrel
 """
 
 # python libraries
@@ -51,8 +51,8 @@ tree = RRT_Dirtrel(start_state, scene.goal, sys, scene, collision_function)
 # run RRT_Dirtrel
 run_options = {
     'epsilon':          1,                              # min dist to goal
-    'max_iter':         100,                            # iterations
-    'plot_freq':        100,                            # how often to plot tree expansion (num iterations)
+    'max_iter':         2e3,                            # iterations
+    'plot_freq':        None,                           # how often to plot tree expansion (num iterations)
     'plot_size':        (10, 10),                       # plot size
     'goal_sample_rate': 0.5,                            # favor tree expansion towards goal
     'input_max':        5,                              # max magnitude of input in any one dimension
@@ -70,8 +70,9 @@ run_options = {
 
 tree.ellipsetree_expansion(run_options)
 final_path = tree.final_path()
+tree.draw_sceneandtree()
 tree.draw_path(final_path)
 # hlfmtxpts drawing currently is slow
 tree.drawEllipsoids(final_path, hlfmtxpts=True)
-##tree.drawEllipsoids(tree.node_list)
-
+plt.show()
+print('Finished')

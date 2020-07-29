@@ -109,22 +109,18 @@ class RRT_Dirtrel(RRT):
                 dist = self.dist_to_goal(n_min.x[0:2])
                 if dist < best_dist_to_goal:
                     best_dist_to_goal = dist
-            if iter_step%options['plot_freq']==0 or best_dist_to_goal <= options['epsilon']:
-                self.draw_sceneandtree(options['plot_size'])
-                plt.title(f'Iteration: {iter_step}\nDistance to goal: {best_dist_to_goal}')
-                plt.show()
-
             iter_step+=1
-        #assert best_dist_to_goal <= epsilon
 
     def ellipsetree_expansion(self, opts):
-        iter_step = 0 
+        iter_step = 0
         self.start.setEi(opts['E0'])
         self.start.setHi(np.zeros((opts['nx'], opts['nw'])))
-        self.node_list = [self.start] 
+        self.node_list = [self.start]
         best_dist_to_goal = self.dist_to_goal(self.start.x[0:2])
 
         while best_dist_to_goal > opts['epsilon'] and iter_step <= opts['max_iter']:
+            #print progress for helpful visual
+            print("\rprogress: {prog:>5}%".format(prog=round(100 * iter_step / opts['max_iter'], 3)), end='')
             samp = self.sample(opts)
             closest = self.nearest_node(samp)
             x_hat, u_hat = self.steer(closest, samp, opts)
@@ -141,25 +137,17 @@ class RRT_Dirtrel(RRT):
                 for node in branch:
                     for o in self.obstacles:
                         collides = self.collision(node.ellipse, o)
-                        #print(collides)
                         if collides:
                             valid = False
                             break
                     if not valid:
                         break
-                #print(iter_step)
                 if valid:
-                    #print('b')
                     self.node_list.append(n_min)
 
                 dist = self.dist_to_goal(n_min.x[0:2])
                 if dist < best_dist_to_goal:
                     best_dist_to_goal = dist
-            if iter_step%opts['plot_freq']==0 or best_dist_to_goal <= opts['epsilon']:
-                self.draw_sceneandtree(opts['plot_size'])
-                plt.title(f'Iteration: {iter_step}\nDistance to goal: {best_dist_to_goal}')
-                plt.show()
-
             iter_step+=1
         #assert best_dist_to_goal <= epsilon
 
