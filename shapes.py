@@ -27,10 +27,10 @@ class Rectangle:
         self.num = len(self.vertices)
         self.w = width
         self.h = height
-        
+
         self.get_polyhedron()
 
-    
+
     def get_lineqns(self, two_points):
         # want ax + by = c from two pts
         # returns a, b, c
@@ -71,7 +71,7 @@ class Rectangle:
         for i in range(self.num-1):
             adj_pairs.append(self.vertices[i:(i+2)])
         adj_pairs.append([self.vertices[-1], self.vertices[0]])
-        
+
         self.get_Ab(adj_pairs)
         self.get_c()
 

@@ -13,7 +13,7 @@ class RRT:
     class Node:
 
         def __init__(self, x, parent=None):
-            self.x = x.reshape(x.size, 1) 
+            self.x = x.reshape(x.size, 1)
             self.parent = parent
             if self.parent:
                 self.n = self.parent.n+1    # time sample
@@ -51,7 +51,7 @@ class RRT:
             rnd = None
             while rnd is None or self.inObstacle(rnd):
                 rnd = np.random.uniform(self.region.v1, self.region.v4, (2, 1))
-        else:  
+        else:
             # sample goal
             rnd = self.goal
         return rnd
@@ -108,8 +108,8 @@ class RRT:
 
 
     def tree_expansion(self, options):
-        iter_step = 0 
-        self.node_list = [self.start] 
+        iter_step = 0
+        self.node_list = [self.start]
         best_dist_to_goal = self.dist_to_goal(self.start.x[0:2])
 
         while best_dist_to_goal > options['epsilon'] and iter_step <= options['max_iter']:
@@ -124,10 +124,11 @@ class RRT:
                 dist = self.dist_to_goal(n_min.x[0:2])
                 if dist < best_dist_to_goal:
                     best_dist_to_goal = dist
+            print(iter_step)
             if iter_step%options['plot_freq']==0 or best_dist_to_goal <= options['epsilon']:
                 self.draw_sceneandtree()
                 plt.title(f'Iteration: {iter_step}\nDistance to goal: {best_dist_to_goal}')
-            
+                plt.show()
             iter_step+=1
 
         #assert best_dist_to_goal <= epsilon
