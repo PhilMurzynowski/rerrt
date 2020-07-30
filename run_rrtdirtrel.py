@@ -19,7 +19,7 @@ from rrtdirtrel import RRT_Dirtrel
 
 
 # Initialize start, goal, bounds on area
-start = [10, 10]
+start = [12.5, 12.5]
 start_state = np.array(start + [-np.pi*2/3, 5, 0]).reshape(5, 1)
 goal = np.array([[0], [0]])
 region = Rectangle([-5, -5], 20, 20)
@@ -51,21 +51,21 @@ tree = RRT_Dirtrel(start_state, scene.goal, sys, scene, collision_function)
 # run RRT_Dirtrel
 run_options = {
     'epsilon':          1,                              # min dist to goal
-    'max_iter':         2e3,                            # iterations
+    'max_iter':         3e3,                            # iterations
     'plot_freq':        None,                           # how often to plot tree expansion (num iterations)
     'plot_size':        (10, 10),                       # plot size
     'goal_sample_rate': 0.5,                            # favor tree expansion towards goal
     'input_max':        5,                              # max magnitude of input in any one dimension
-    'input_samples':    10,                             # number of random inputs to sample in steering method
+    'input_samples':    20,                             # number of random inputs to sample in steering method
     'nx':               sys_opts['nx'],
     'nu':               sys_opts['nu'],
     'nw':               sys_opts['nw'],
     'D':                0.05*np.eye(sys_opts['nw']),
     'E0':               0.05*np.eye(sys_opts['nx']),
-    'Ql':               np.eye(sys_opts['nx']),         # use if cost added
+    'Ql':               np.eye(sys_opts['nx']),         # use if robust cost from DIRTREL paper added
     'Rl':               np.eye(sys_opts['nu']),         # ...
     'QlN':              np.eye(sys_opts['nx']),         # ...
-    'Q':                np.eye(sys_opts['nx']),
+    'Q':                np.diag((5, 5, 0, 0, 0)),
     'R':                np.eye(sys_opts['nu'])}
 
 tree.ellipsetree_expansion(run_options)

@@ -4,6 +4,7 @@ RRT-Dirtrel Implementation
 
 # python libraries
 import numpy as np
+import scipy
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
@@ -14,7 +15,7 @@ import matplotlib.patches as patches
 from rrt import RRT
 from shapes import Rectangle, Ellipse
 from collision import CollisionDetection
-from setup import Scene, MySystem
+from setup import printProgressBar, Scene, MySystem
 
 
 
@@ -38,7 +39,14 @@ class RRT_Dirtrel(RRT):
             self.E = None
 
         def createEllipse(self):
-            self.ellipse = Ellipse(self.x[0:2], self.E[:2, :2])
+            # let EE bet E^1/2
+            EE = scipy.linalg.sqrtm(self.E)
+            # take first 2 dimensions and project
+            A = np.array([[1, 0, 0, 0, 0], [0, 1, 0, 0, 0]])
+            EEw = np.linalg.pinv(A@EE)
+            #print(f'EEw.T@EEw:   {EEw.T@EEw}')
+            ellipse_projection = np.linalg.inv(EEw.T@EEw)
+            self.ellipse = Ellipse(self.x[0:2], ellipse_projection)
 
         def setEi(self, Ei):
             self.E = Ei
@@ -59,15 +67,11 @@ class RRT_Dirtrel(RRT):
 
         def calcSi(self, Q, R, nextNode):
             p = nextNode
-            #self.S = Q + p.A.T@p.S@p.A - p.A.T@p.S@p.B@np.linalg.inv(R + p.B.T@p.S@p.B)@p.B.T@p.S@p.A
             self.S = Q + self.A.T@p.S@self.A - self.A.T@p.S@self.B@np.linalg.inv(R + self.B.T@p.S@self.B)@self.B.T@p.S@self.A
 
-        def calcKi(self, R):
-            self.K = np.linalg.inv(R + self.B.T@self.S@self.B)@self.B.T@self.S@self.A
-
-        # def calcKi(self, R, nextNode):
-        #     p = nextNode
-        #     self.K = np.linalg.inv(R + self.B.T@p.S@self.B)@self.B.T@p.S@self.A
+        def calcKi(self, R, nextNode):
+             p = nextNode
+             self.K = np.linalg.inv(R + self.B.T@p.S@self.B)@self.B.T@p.S@self.A
 
         def propogateEllipse(self, D, nextNode):
             # let n be next
@@ -91,26 +95,6 @@ class RRT_Dirtrel(RRT):
         self.collision = collision_function
 
 
-    def tree_expansion(self, options):
-        iter_step = 0 
-        self.node_list = [self.start] 
-        best_dist_to_goal = self.dist_to_goal(self.start.x[0:2])
-
-        while best_dist_to_goal > options['epsilon'] and iter_step <= options['max_iter']:
-            samp = self.sample(options)
-            closest = self.nearest_node(samp)
-            x_hat, u_hat = self.steer(closest, samp, options)
-            n_min = self.DirtrelNode(x_hat, closest)
-
-            if self.inRegion(x_hat[0:2]) and not self.inObstacle(x_hat[0:2]):
-                # n_min only added to tree if not in obstacle
-                self.node_list.append(n_min)
-                n_min.parent.set_u(u_hat)
-                dist = self.dist_to_goal(n_min.x[0:2])
-                if dist < best_dist_to_goal:
-                    best_dist_to_goal = dist
-            iter_step+=1
-
     def ellipsetree_expansion(self, opts):
         iter_step = 0
         self.start.setEi(opts['E0'])
@@ -119,8 +103,7 @@ class RRT_Dirtrel(RRT):
         best_dist_to_goal = self.dist_to_goal(self.start.x[0:2])
 
         while best_dist_to_goal > opts['epsilon'] and iter_step <= opts['max_iter']:
-            #print progress for helpful visual
-            print("\rprogress: {prog:>5}%".format(prog=round(100 * iter_step / opts['max_iter'], 3)), end='')
+            printProgressBar(iter_step, opts['max_iter'])
             samp = self.sample(opts)
             closest = self.nearest_node(samp)
             x_hat, u_hat = self.steer(closest, samp, opts)
@@ -128,7 +111,6 @@ class RRT_Dirtrel(RRT):
 
             # check if centerpoint is in valid region
             if self.inRegion(x_hat[0:2]) and not self.inObstacle(x_hat[0:2]):
-
                 n_min.parent.set_u(u_hat)
                 n_min.parent.getJacobians(self.system)
                 branch = self.calcEllipseGivenEndNode(n_min, opts)
@@ -138,10 +120,9 @@ class RRT_Dirtrel(RRT):
                     for o in self.obstacles:
                         collides = self.collision(node.ellipse, o)
                         if collides:
-                            valid = False
+                            valid = False;
                             break
-                    if not valid:
-                        break
+                    if not valid: break
                 if valid:
                     self.node_list.append(n_min)
 
@@ -149,7 +130,6 @@ class RRT_Dirtrel(RRT):
                 if dist < best_dist_to_goal:
                     best_dist_to_goal = dist
             iter_step+=1
-        #assert best_dist_to_goal <= epsilon
 
     def calcEllipseGivenEndNode(self, endnode, opts):
         # can optimize later so don't need to create list for path
@@ -178,7 +158,7 @@ class RRT_Dirtrel(RRT):
         for i in range(N-1, 0, -1):
             path[i-1].calcSi(opts['Q'], opts['R'], path[i])
         for i in range(N-1):
-            path[i].calcKi(opts['R'])
+            path[i].calcKi(opts['R'], path[i+1])
             path[i].propogateEllipse(opts['D'], path[i+1])
 
     def drawEllipsoids(self, nodes, hlfmtxpts=False):

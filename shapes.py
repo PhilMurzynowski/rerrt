@@ -112,6 +112,7 @@ class Ellipse():
         self.mtx = matrix
         self.c = center
         # self.c3D = np.append(center, [[0]], axis=0)
+        self.hlfmtxpts = None
 
 
     def convertFromMatrix(self, mtx=None):
@@ -151,13 +152,14 @@ class Ellipse():
 
 
     def getHalfMtxPts(self):
-        mtx_half = scipy.linalg.sqrtm(self.mtx)
-        halfmtx_pts = np.zeros((2, 2*mtx_half.shape[0]))
-        for i in range(mtx_half.shape[0]):
-            halfmtx_pts[:, i] = mtx_half[:, i]
-            halfmtx_pts[:, i + mtx_half.shape[0]] = -mtx_half[:, i]
-        halfmtx_pts += self.c
-        return halfmtx_pts
+        if self.hlfmtxpts is None:
+            mtx_half = scipy.linalg.sqrtm(self.mtx)
+            halfmtx_pts = np.zeros((2, 2*mtx_half.shape[0]))
+            for i in range(mtx_half.shape[0]):
+                halfmtx_pts[:, i] = mtx_half[:, i]
+                halfmtx_pts[:, i + mtx_half.shape[0]] = -mtx_half[:, i]
+            self.halfmtxpts = halfmtx_pts + self.c
+        return self.halfmtxpts
 
 
     def support(self, dir, dim='3D', exact=True):
