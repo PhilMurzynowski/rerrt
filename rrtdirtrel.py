@@ -95,7 +95,13 @@ class RRT_Dirtrel(RRT):
         self.collision = collision_function
 
 
-    def ellipsetree_expansion(self, opts):
+    def ellipseTreeExpansion(self, opts):
+        if opts['direction'] == 'forward':
+            self.ellipseTreeForwardExpansion(opts)
+        elif opts['direction'] == 'backward':
+            self.ellipseTreeBackwardExpansion(opts)
+
+    def ellipseTreeForwardExpansion(self, opts):
         iter_step = 0
         self.start.setEi(opts['E0'])
         self.start.setHi(np.zeros((opts['nx'], opts['nw'])))
@@ -130,6 +136,9 @@ class RRT_Dirtrel(RRT):
                 if dist < best_dist_to_goal:
                     best_dist_to_goal = dist
             iter_step+=1
+
+    def ellipseTreeBackwardExpansion(self, opts):
+        pass
 
     def calcEllipseGivenEndNode(self, endnode, opts):
         # can optimize later so don't need to create list for path
