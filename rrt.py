@@ -22,8 +22,8 @@ class RRT:
 
 
     def __init__(self, start, goal, system, scene):
-        self.start = self.Node(start)
-        self.goal = np.array(goal)
+        self.start = start
+        self.goal = goal
         self.system = system
         self.scene = scene
         self.region = scene.region
@@ -53,13 +53,21 @@ class RRT:
                 rnd = np.random.uniform(self.region.v1, self.region.v4, (2, 1))
         else:
             # sample goal
-            rnd = self.goal
+            rnd = self.goal[:2, :]
         return rnd
 
 
     def distance_metric(self, p1, p2):
         """Can implement different distance metrics for nonlinear systems"""
-        return np.linalg.norm(p1 - p2)
+        if p1.shape != (2, 1):
+            p1_xy = p1[:2].reshape(2, 1)
+        else:
+            p1_xy = p1
+        if p2.shape != (2, 1):
+            p2_xy = p2[:2].reshape(2, 1)
+        else:
+            p2_xy = p2
+        return np.linalg.norm(p1_xy - p2_xy)
 
 
     def dist_to_goal(self, pt):
@@ -89,7 +97,10 @@ class RRT:
         best_proximity = np.inf
         for k in range(options['input_samples']):
             u_samp = np.random.uniform(-options['input_max'], options['input_max'], (2, 1))
-            x_samp = self.system.nextState(from_node.x, u_samp)
+            if options['direction'] == 'forward':
+                x_samp = self.system.nextState(from_node.x, u_samp)
+            elif options['direction'] == 'backward':
+                x_samp = self.system.prevState(from_node.x, u_samp)
             proximity = self.distance_metric(to_location, x_samp[0:2])
             if best_u is None or proximity < best_proximity:
                 best_u, best_proximitiy, best_x = u_samp, proximity, x_samp
@@ -109,7 +120,7 @@ class RRT:
 
     def tree_expansion(self, options):
         iter_step = 0
-        self.node_list = [self.start]
+        self.node_list = [Node(self.start)]
         best_dist_to_goal = self.dist_to_goal(self.start.x[0:2])
 
         while best_dist_to_goal > options['epsilon'] and iter_step <= options['max_iter']:

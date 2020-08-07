@@ -20,8 +20,15 @@ from rrtdirtrel import RRT_Dirtrel
 
 # Initialize start, goal, bounds on area
 start = [12.5, 12.5]
+goal = [0, 0]
+
+# start_state used for forward expansion as start
+# goal_state used for backward expansion as start
+# currently RRT does not require both starting state
+# and ending state to be satisfied
+# one must be satisfied and returns solution closest to other desired state
 start_state = np.array(start + [-np.pi*2/3, 5, 0]).reshape(5, 1)
-goal = np.array([[0], [0]])
+goal_state = np.array(goal + [np.pi*1/3, 5, 0]).reshape(5, 1)
 region = Rectangle([-5, -5], 20, 20)
 
 
@@ -46,7 +53,7 @@ col = CollisionDetection()
 collision_function = col.selectCollisionChecker('erHalfMtxPts')
 
 # initialize RRT_Dirtrel
-tree = RRT_Dirtrel(start_state, scene.goal, sys, scene, collision_function)
+tree = RRT_Dirtrel(start_state, goal_state, sys, scene, collision_function)
 
 # run RRT_Dirtrel
 run_options = {
@@ -54,7 +61,7 @@ run_options = {
     'max_iter':         200,                            # iterations
     'plot_freq':        None,                           # how often to plot tree expansion (num iterations)
     'plot_size':        (10, 10),                       # plot size
-    'direction':        'backward',                    # determine whether to propogate tree forwards or backwards
+    'direction':        'forward',                    # determine whether to propogate tree forwards or backwards
     'goal_sample_rate': 0.5,                            # favor tree expansion towards goal
     'input_max':        5,                              # max magnitude of input in any one dimension
     'input_samples':    20,                             # number of random inputs to sample in steering method

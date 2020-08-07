@@ -91,56 +91,77 @@ class RRT_Dirtrel(RRT):
 
     def __init__(self, start, goal, system, scene, collision_function):
         super().__init__(start, goal, system, scene)
-        self.start = self.DirtrelNode(start) # overwrite self.start
         self.collision = collision_function
 
+    def branchCollision(self, branch):
+        # collision method passed in
+        for node in branch:
+            for o in self.obstacles:
+                collides = self.collision(node.ellipse, o)
+                if collides:
+                    return True
+        return False
+
+    def extend(self, opts):
+        # returns a node and the control input used
+        samp = self.sample(opts)
+        closest = self.nearest_node(samp)
+        new_x, new_u = self.steer(closest, samp, opts)
+        new_node = self.DirtrelNode(new_x, closest)
+        return new_node, new_u
 
     def ellipseTreeExpansion(self, opts):
         if opts['direction'] == 'forward':
+            self.start = self.DirtrelNode(self.start) # overwrite self.start
+            self.node_list = [self.start]
             self.ellipseTreeForwardExpansion(opts)
         elif opts['direction'] == 'backward':
+            # switch start and goal
+            # to grow the tree bacwards list the end point as the start
+            tmp1 = np.copy(self.start)
+            tmp2 = np.copy(self.goal)
+            self.start = self.DirtrelNode(tmp2) # overwrite self.start
+            self.goal = tmp1
+            self.node_list = [self.start]
             self.ellipseTreeBackwardExpansion(opts)
 
     def ellipseTreeForwardExpansion(self, opts):
         iter_step = 0
         self.start.setEi(opts['E0'])
         self.start.setHi(np.zeros((opts['nx'], opts['nw'])))
-        self.node_list = [self.start]
         best_dist_to_goal = self.dist_to_goal(self.start.x[0:2])
 
         while best_dist_to_goal > opts['epsilon'] and iter_step <= opts['max_iter']:
             printProgressBar(iter_step, opts['max_iter'])
-            samp = self.sample(opts)
-            closest = self.nearest_node(samp)
-            x_hat, u_hat = self.steer(closest, samp, opts)
-            n_min = self.DirtrelNode(x_hat, closest)
-
+            new_node, new_u  = self.extend(opts)
             # check if centerpoint is in valid region
-            if self.inRegion(x_hat[0:2]) and not self.inObstacle(x_hat[0:2]):
-                n_min.parent.set_u(u_hat)
-                n_min.parent.getJacobians(self.system)
-                branch = self.calcEllipseGivenEndNode(n_min, opts)
-                # collision method passed in
-                valid = True
-                for node in branch:
-                    for o in self.obstacles:
-                        collides = self.collision(node.ellipse, o)
-                        if collides:
-                            valid = False;
-                            break
-                    if not valid: break
-                if valid:
-                    self.node_list.append(n_min)
+            if self.inRegion(new_node.x[0:2]) and not self.inObstacle(new_node.x[0:2]):
+                new_node.parent.set_u(new_u)
+                new_node.parent.getJacobians(self.system)
+                branch = self.calcEllipsesGivenEndNode(new_node, opts)
+                # check for new collisions after recalculating ellipsoids
+                if not self.branchCollision(branch):
+                    self.node_list.append(new_node)
 
-                dist = self.dist_to_goal(n_min.x[0:2])
-                if dist < best_dist_to_goal:
-                    best_dist_to_goal = dist
+                dist = self.dist_to_goal(new_node.x[0:2])
+                if dist < best_dist_to_goal: best_dist_to_goal = dist
             iter_step+=1
 
     def ellipseTreeBackwardExpansion(self, opts):
+        iter_step = 0
+        best_dist_to_goal = self.dist_to_goal(self.start.x[0:2])
+
+        while best_dist_to_goal > opts['epsilon'] and iter_step <= opts['max_iter']:
+            printProgressBar(iter_step, opts['max_iter'])
+            new_node, new_u = self.extend(opts)
+            if self.inRegion(new_node.x[0:2]) and not self.inObstacle(new_node.x[:2]):
+                new_node.set_u(new_u)
+                new_node.getJacobians(self.system)
+
+    def calcEllipsesBackwardExpansion(self, opts):
         pass
 
-    def calcEllipseGivenEndNode(self, endnode, opts):
+    def calcEllipsesGivenEndNode(self, endnode, opts):
         # can optimize later so don't need to create list for path
         branch = self.getPath(endnode)
         self.calcEllipseGivenPath(branch, opts)

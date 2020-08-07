@@ -60,6 +60,7 @@ class MySystem():
         self.nx = sys_opts['nx']
         self.nu = sys_opts['nu']
         self.nw = sys_opts['nw']
+        self.dir = 1
 
     def dynamics(self, state, input, uncertainty=None):
 
@@ -68,15 +69,23 @@ class MySystem():
 
         #["x_pos", "y_pos", "heading", "speed", "steer_angle"]
         x_next = np.array([
-            state[0] + self.dt*(state[3]*np.cos(state[2])),
-            state[1] + self.dt*(state[3]*np.sin(state[2])),
-            state[2] + self.dt*(state[3]*np.tan(state[4] + uncertainty[0])),
-            state[3] + self.dt*(input[0]),
-            state[4] + self.dt*(input[1] + uncertainty[1])])
+            state[0] + self.dir*self.dt*(state[3]*np.cos(state[2])),
+            state[1] + self.dir*self.dt*(state[3]*np.sin(state[2])),
+            state[2] + self.dir*self.dt*(state[3]*np.tan(state[4] + uncertainty[0])),
+            state[3] + self.dir*self.dt*(input[0]),
+            state[4] + self.dir*self.dt*(input[1] + uncertainty[1])])
         return x_next
 
     def nextState(self, state, input):
         # wrapper
+        if self.dir == -1:
+            self.dir = 1
+        return self.dynamics(state, input)
+
+    def prevState(self, state, input):
+        # backwards integration
+        if self.dir == 1:
+            self.dir = -1
         return self.dynamics(state, input)
 
     def getJacobians(self, x, u, w=None):
