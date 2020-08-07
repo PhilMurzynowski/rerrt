@@ -130,50 +130,61 @@ class RRT_Dirtrel(RRT):
         self.start.setEi(opts['E0'])
         self.start.setHi(np.zeros((opts['nx'], opts['nw'])))
         best_dist_to_goal = self.dist_to_goal(self.start.x[0:2])
-
-        while best_dist_to_goal > opts['epsilon'] and iter_step <= opts['max_iter']:
+        while best_dist_to_goal > opts['epsilon'] and iter_step < opts['max_iter']:
+            iter_step+=1
             printProgressBar(iter_step, opts['max_iter'])
             new_node, new_u  = self.extend(opts)
             # check if centerpoint is in valid region
-            if self.inRegion(new_node.x[0:2]) and not self.inObstacle(new_node.x[0:2]):
-                new_node.parent.set_u(new_u)
-                new_node.parent.getJacobians(self.system)
-                branch = self.calcEllipsesGivenEndNode(new_node, opts)
-                # check for new collisions after recalculating ellipsoids
-                if not self.branchCollision(branch):
-                    self.node_list.append(new_node)
-
-                dist = self.dist_to_goal(new_node.x[0:2])
-                if dist < best_dist_to_goal: best_dist_to_goal = dist
-            iter_step+=1
+            if not self.inRegion(new_node.x[0:2]) or self.inObstacle(new_node.x[0:2]):
+                # invalid node
+                continue
+            new_node.parent.set_u(new_u)
+            new_node.parent.getJacobians(self.system)
+            branch = self.calcEllipsesGivenEndNode(new_node, opts)
+            # check for new collisions after recalculating ellipsoids
+            if not self.branchCollision(branch):
+                self.node_list.append(new_node)
+            new_dist = self.dist_to_goal(new_node.x[0:2])
+            if new_dist < best_dist_to_goal: best_dist_to_goal = new_dist
 
     def ellipseTreeBackwardExpansion(self, opts):
         iter_step = 0
+        # self.start is the goal here, growing backwards, apologies aha
+        self.start.setSi(np.zeros((opts['nx'], opts['nx'])))
         best_dist_to_goal = self.dist_to_goal(self.start.x[0:2])
-
-        while best_dist_to_goal > opts['epsilon'] and iter_step <= opts['max_iter']:
+        while best_dist_to_goal > opts['epsilon'] and iter_step < opts['max_iter']:
+            iter_step+=1
             printProgressBar(iter_step, opts['max_iter'])
             new_node, new_u = self.extend(opts)
-            if self.inRegion(new_node.x[0:2]) and not self.inObstacle(new_node.x[:2]):
-                new_node.set_u(new_u)
-                new_node.getJacobians(self.system)
+            if not self.inRegion(new_node.x[0:2]) or self.inObstacle(new_node.x[0:2]):
+                # invalid node
+                continue
+            new_node.set_u(new_u)
+            new_node.getJacobians(self.system)
+            branch = self.calcEllipsesGivenStartNode(new_node, opts)
+            # check for new collisions after recalculating ellipsoids
+            if not self.branchCollision(branch):
+                self.node_list.append(new_node)
+            new_dist = self.dist_to_goal(new_node.x[0:2])
+            if new_dist < best_dist_to_goal: best_dist_to_goal = new_dist
 
-    def calcEllipsesBackwardExpansion(self, opts):
-        pass
+    def calcEllipsesGivenStartNode(self, startnode, opts):
+        startnode.calcSi(opts['Q'], opts['R'], startnode.parent)
+        startnode.calcKi(opts['R'], startnode.parent)
+        startnode.setEi(opts['E0'])
+        startnode.setHi(np.zeros((opts['nx'], opts['nw'])))
+        # don't actually need to create a list of nodes to check for collision later
+        # can check for collision immediately after repropogating ellipsoid
+        branch = self.getPath(startnode, reverse=False)
+        for i in range(len(branch)-1):
+            branch[i].propogateEllipse(opts['D'], branch[i+1])
+        return branch
 
     def calcEllipsesGivenEndNode(self, endnode, opts):
         # can optimize later so don't need to create list for path
         branch = self.getPath(endnode)
         self.calcEllipseGivenPath(branch, opts)
         return branch
-        # dont have to set Si and Hi for start as those will never change
-        # endnode.setSi(np.zeros((opts['nx'], opts['nx'])))
-        # node = endnode
-        # while node.parent is not None:
-        #     node.calcSi(opts['Q'], opts['R'], node.parent)
-        #     node.calcKi(opts['R'])
-        #     node = node.parent
-
 
     def calcEllipseGivenPath(self, path, opts):
 
@@ -181,7 +192,6 @@ class RRT_Dirtrel(RRT):
         path[N-1].setSi(np.zeros((opts['nx'], opts['nx'])))
         path[0].setEi(opts['E0'])
         path[0].setHi(np.zeros((opts['nx'], opts['nw'])))
-        #print(f'N: {N}')
 
         for i in range(N-1):
             path[i].getJacobians(self.system)

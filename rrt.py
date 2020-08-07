@@ -145,13 +145,13 @@ class RRT:
         #assert best_dist_to_goal <= epsilon
 
 
-    def getPath(self, endnode):
+    def getPath(self, endnode, reverse=True):
         path = [endnode]
         node = endnode
         while node.parent is not None:
             node = node.parent
             path.append(node)
-        path = path[::-1]
+        if reverse: path = path[::-1]
         return path
 
 
