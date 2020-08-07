@@ -58,7 +58,7 @@ tree = RRT_Dirtrel(start_state, goal_state, sys, scene, collision_function)
 # run RRT_Dirtrel
 run_options = {
     'epsilon':          1,                              # min dist to goal
-    'max_iter':         3e3,                            # iterations
+    'max_iter':         500,                            # iterations
     'plot_freq':        None,                           # how often to plot tree expansion (num iterations)
     'plot_size':        (10, 10),                       # plot size
     'direction':        'backward',                    # determine whether to propogate tree forwards or backwards

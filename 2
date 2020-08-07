@@ -169,19 +169,29 @@ class RRT_Dirtrel(RRT):
             new_dist = self.dist_to_goal(new_node.x[0:2])
             if new_dist < best_dist_to_goal: best_dist_to_goal = new_dist
 
+    def calcEllipsesGivenStartNode(self, startnode, opts):
+        # may scratch this method
+        startnode.calcSi(opts['Q'], opts['R'], startnode.parent)
+        startnode.calcKi(opts['R'], startnode.parent)
+        startnode.setEi(opts['E0'])
+        startnode.setHi(np.zeros((opts['nx'], opts['nw'])))
+        # don't actually need to create a list of nodes to check for collision later
+        # can check for collision immediately after repropogating ellipsoid
+        node = startnode
+        while node.parent is not None:
+            node.propogateEllipse(opts['D'], node.parent)
+
     def repropogateEllipsoids(self, startnode, opts):
-        # currently this method is only valid for backwards RRT
         # avoid creating lists by checking collision immediately after propogating ellipse
         startnode.calcSi(opts['Q'], opts['R'], startnode.parent)
         startnode.calcKi(opts['R'], startnode.parent)
         startnode.setEi(opts['E0'])
         startnode.setHi(np.zeros((opts['nx'], opts['nw'])))
-        if self.nodeCollision(startnode): return False
         node = startnode
+        if self.nodeCollision(startnode): return False
         while node.parent is not None:
             node.propogateEllipse(opts['D'], node.parent)
             if self.nodeCollision(node.parent): return False
-            node = node.parent
         return True
 
     def calcEllipsesGivenEndNode(self, endnode, opts):
