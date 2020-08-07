@@ -78,9 +78,9 @@ run_options = {
 
 tree.ellipseTreeExpansion(run_options)
 final_path = tree.final_path()
-tree.draw_sceneandtree()
+tree.draw_sceneandtree(size=(15, 15))
 tree.draw_path(final_path)
 # hlfmtxpts drawing currently is slow
 tree.drawEllipsoids(final_path, hlfmtxpts=True)
+print(' Finished')
 plt.show()
-print('Finished')

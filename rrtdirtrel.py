@@ -38,36 +38,22 @@ class RRT_Dirtrel(RRT):
             self.H = None
             self.E = None
             self.ellipse = None
-            # used to store values when checking for collision
-            # these values are committed if propogation of branch valid
-            # tmd for timid
-            self.H_timid, self.E_timid, self.ellipse_timid = None, None, None
 
-        def createEllipse(self, E):
+        def createEllipse(self):
             # let EE bet E^1/2
-            EE = scipy.linalg.sqrtm(E)
+            EE = scipy.linalg.sqrtm(self.E)
             # take first 2 dimensions and project
             A = np.array([[1, 0, 0, 0, 0], [0, 1, 0, 0, 0]])
             EEw = np.linalg.pinv(A@EE)
             ellipse_projection = np.linalg.inv(EEw.T@EEw)
-            return Ellipse(self.x[0:2], ellipse_projection)
+            self.ellipse =  Ellipse(self.x[0:2], ellipse_projection)
 
         def setEi(self, Ei):
             self.E = Ei
-            self.ellipse = self.createEllipse(self.E)
+            self.createEllipse()
 
         def setHi(self, Hi):
             self.H = Hi
-
-        #def setTimidValues(self, Hi, Ei):
-        #    self.H_timid = Hi
-        #    self.E_timid = Ei
-        #    self.ellipse_timid = self.createEllipse(self.E_timid)
-
-        #def adoptTimidValues(self):
-        #    self.H = self.H_timid.copy()
-        #    self.E = self.E_timid.copy()
-        #    self.ellipse = self.ellipse_timid.copy()
 
         def setSi(self, Si):
             self.S = Si
@@ -87,23 +73,15 @@ class RRT_Dirtrel(RRT):
              p = nextNode
              self.K = np.linalg.inv(R + self.B.T@p.S@self.B)@self.B.T@p.S@self.A
 
-        def propogateEllipse(self, D, nextNode, timid=False):
-            # timid option determines whether to commit propogation
-            # to main variable i.e. setEi or store the values aside (e.g. to check collision before committing) 
-            # let n be next
-            E = self.E_timid if timid else self.E
-            H = self.H_timid if timid else self.H
+        def propogateEllipse(self, D, nextNode):
             abk = self.A-self.B@self.K
-            En = abk@E@abk.T
-            En += abk@H@self.G.T + self.G@H.T@abk.T
+            En = abk@self.E@abk.T
+            En += abk@self.H@self.G.T + self.G@self.H.T@abk.T
             En += self.G@D@self.G.T
-            Hn = abk@H + self.G@D
+            Hn = abk@self.H + self.G@D
 
-            if timid:
-                nextNode.setTimidValues(Hn, En)
-            else:
-                nextNode.setHi(Hn)
-                nextNode.setEi(En)
+            nextNode.setHi(Hn)
+            nextNode.setEi(En)
 
         def calcCost(self):
             pass
@@ -113,16 +91,15 @@ class RRT_Dirtrel(RRT):
         super().__init__(start, goal, system, scene)
         self.collision = collision_function
 
-    def nodeCollision(self, node, timid=False):
-        ellipse = node.ellipse_timid if timid else node.ellipse
+    def nodeCollision(self, node):
         for o in self.obstacles:
-            if self.collision(ellipse, o): return True
+            if self.collision(node.ellipse, o): return True
         return False
 
-    def branchCollision(self, branch, timid=False):
+    def branchCollision(self, branch):
         # collision method passed in
         for node in branch:
-            if self.nodeCollision(node, timid): return True
+            if self.nodeCollision(node): return True
         return False
 
     def extend(self, opts):
@@ -174,10 +151,12 @@ class RRT_Dirtrel(RRT):
         iter_step = 0
         # self.start is the goal here, growing backwards, apologies aha
         self.start.setSi(np.zeros((opts['nx'], opts['nx'])))
-        best_dist_to_goal = self.dist_to_goal(self.start.x[0:2])
-        while best_dist_to_goal > opts['epsilon'] and iter_step < opts['max_iter']:
+        dist_from_start = self.dist_to_goal(self.start.x[0:2])
+        best_dist = dist_from_start 
+        while best_dist > opts['epsilon'] and iter_step < opts['max_iter']:
             iter_step+=1
-            printProgressBar(iter_step, opts['max_iter'])
+            printProgressBar('Iterations complete', iter_step, opts['max_iter'])
+            printProgressBar('| Distance covered', dist_from_start-best_dist, dist_from_start, writeover=False)
             new_node, new_u = self.extend(opts)
             if not self.inRegion(new_node.x[0:2]) or self.inObstacle(new_node.x[0:2]):
                 # invalid node
@@ -187,9 +166,8 @@ class RRT_Dirtrel(RRT):
             valid_propogation = self.repropogateEllipses(new_node, opts)
             if valid_propogation:
                 self.node_list.append(new_node)
-                #self.adoptNewEllipses(new_node)
                 new_dist = self.dist_to_goal(new_node.x[0:2])
-                if new_dist < best_dist_to_goal: best_dist_to_goal, best_start_node = new_dist, new_node
+                if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node
         # repoprogate from best start node for accurate graphing
         final_propogation_valid = self.repropogateEllipses(best_start_node, opts)
         assert final_propogation_valid
@@ -199,26 +177,15 @@ class RRT_Dirtrel(RRT):
         # avoid creating lists by checking collision immediately after propogating ellipse
         startnode.calcSi(opts['Q'], opts['R'], startnode.parent)
         startnode.calcKi(opts['R'], startnode.parent)
-        # timid option does not commit new ellipse values yet
-        timid = False
-        #startnode.setTimidValues(np.zeros((opts['nx'], opts['nw'])), opts['E0'])
         startnode.setHi(np.zeros((opts['nx'], opts['nw'])))
         startnode.setEi(opts['E0'])
-        if self.nodeCollision(startnode, timid=timid): return False
+        if self.nodeCollision(startnode): return False
         node = startnode
         while node.parent is not None:
-            node.propogateEllipse(opts['D'], node.parent, timid=timid)
-            if self.nodeCollision(node.parent, timid=timid): return False
+            node.propogateEllipse(opts['D'], node.parent)
+            if self.nodeCollision(node.parent): return False
             node = node.parent
         return True
-
-    def adoptNewEllipses(self, startnode):
-        # when repropogating ellipses new ellipses only adopted
-        # after all ellipses have been checked for collision
-        node = startnode
-        while node.parent is not None:
-            node.parent.adoptTimidValues()
-            node = node.parent
 
     def calcEllipsesGivenEndNode(self, endnode, opts):
         # can optimize later so don't need to create list for path

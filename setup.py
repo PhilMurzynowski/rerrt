@@ -11,8 +11,9 @@ from pydrake.systems.scalar_conversion import TemplateSystem
 
 
 
-def printProgressBar(iteration, num_iterations):
-    print("\rprogress: {prog:>5}%".format(prog=round(100 * iteration / num_iterations, 3)), end='')
+def printProgressBar(text, current_value, max_value, writeover=True):
+    start = '\r' if writeover else ' '
+    print("{start}{text}: {prog:>5}%".format(start=start, text=text, prog=round(100 * current_value / max_value, 3)), end='')
 
 
 def getRotationMtx(angle_deg):
