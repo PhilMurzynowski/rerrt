@@ -87,8 +87,17 @@ class RRT_Dirtrel(RRT):
             pass
 
 
-    def __init__(self, start, goal, system, scene, collision_function):
-        super().__init__(start, goal, system, scene)
+    def __init__(self, start, goals, system, scene, collision_function):
+        self.start = start
+        # multiple goals only currently used for backwards RRT
+        self.goals = goals
+        # set first goal state to default goal
+        self.goal = goals[0]
+        self.system = system
+        self.scene = scene
+        self.region = scene.region
+        self.obstacles = scene.obstacles
+        self.poly = [self.region] + self.obstacles
         self.collision = collision_function
 
     def nodeCollision(self, node):
@@ -114,21 +123,22 @@ class RRT_Dirtrel(RRT):
         if opts['direction'] == 'forward':
             self.start = self.DirtrelNode(self.start) # overwrite self.start
             self.node_list = [self.start]
+            self.start.setEi(opts['E0'])
+            self.start.setHi(np.zeros((opts['nx'], opts['nw'])))
             self.ellipseTreeForwardExpansion(opts)
         elif opts['direction'] == 'backward':
             # switch start and goal
             # to grow the tree bacwards list the end point as the start
-            tmp1 = np.copy(self.start)
-            tmp2 = np.copy(self.goal)
-            self.start = self.DirtrelNode(tmp2) # overwrite self.start
-            self.goal = tmp1
-            self.node_list = [self.start]
+            self.goal = np.copy(self.start)
+            self.starts = [self.DirtrelNode(x) for x in self.goals]
+            self.node_list = self.starts.copy()
+            # self.starts are the goals here, growing backwards, apologies aha
+            for i in range(len(self.starts)):
+                self.starts[i].setSi(np.zeros((opts['nx'], opts['nx'])))
             self.ellipseTreeBackwardExpansion(opts)
 
     def ellipseTreeForwardExpansion(self, opts):
         iter_step = 0
-        self.start.setEi(opts['E0'])
-        self.start.setHi(np.zeros((opts['nx'], opts['nw'])))
         best_dist_to_goal = self.dist_to_goal(self.start.x[0:2])
         while best_dist_to_goal > opts['epsilon'] and iter_step < opts['max_iter']:
             iter_step+=1
@@ -149,14 +159,13 @@ class RRT_Dirtrel(RRT):
 
     def ellipseTreeBackwardExpansion(self, opts):
         iter_step = 0
-        # self.start is the goal here, growing backwards, apologies aha
-        self.start.setSi(np.zeros((opts['nx'], opts['nx'])))
-        dist_from_start = self.dist_to_goal(self.start.x[0:2])
-        best_dist = dist_from_start 
+        initial_dist = self.dist_to_goal(self.starts[0].x[:2])
+        best_dist = initial_dist
+        best_start_node = None
         while best_dist > opts['epsilon'] and iter_step < opts['max_iter']:
             iter_step+=1
             printProgressBar('Iterations complete', iter_step, opts['max_iter'])
-            printProgressBar('| Distance covered', dist_from_start-best_dist, dist_from_start, writeover=False)
+            printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)
             new_node, new_u = self.extend(opts)
             if not self.inRegion(new_node.x[0:2]) or self.inObstacle(new_node.x[0:2]):
                 # invalid node
@@ -169,8 +178,9 @@ class RRT_Dirtrel(RRT):
                 new_dist = self.dist_to_goal(new_node.x[0:2])
                 if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node
         # repoprogate from best start node for accurate graphing
-        final_propogation_valid = self.repropogateEllipses(best_start_node, opts)
-        assert final_propogation_valid
+        if best_start_node is not None:
+            final_propogation_valid = self.repropogateEllipses(best_start_node, opts)
+            assert final_propogation_valid
 
     def repropogateEllipses(self, startnode, opts):
         # currently this method is only valid for backwards RRT

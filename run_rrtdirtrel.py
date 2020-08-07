@@ -23,12 +23,15 @@ start = [12.5, 12.5]
 goal = [0, 0]
 
 # start_state used for forward expansion as start
-# goal_state used for backward expansion as start
+# goal_states used for backward expansion as start
+#   multiple goals states allow for better tree growth using backwards RRT with nonlinear systems
 # currently RRT does not require both starting state
 # and ending state to be satisfied
 # one must be satisfied and returns solution closest to other desired state
 start_state = np.array(start + [-np.pi*2/3, 5, 0]).reshape(5, 1)
-goal_state = np.array(goal + [-np.pi*2/3, 5, 0]).reshape(5, 1)
+num_goal_states = 20
+eps = 1e-4
+goal_states = [np.array([goal[0]+eps*np.cos(theta)]+[goal[1]+eps*np.sin(theta)]+[(theta+np.pi)%(2*np.pi), 5, 0]).reshape(5, 1) for theta in np.linspace(-np.pi, np.pi, num_goal_states, endpoint=False)]
 region = Rectangle([-5, -5], 20, 20)
 
 
@@ -53,7 +56,7 @@ col = CollisionDetection()
 collision_function = col.selectCollisionChecker('erHalfMtxPts')
 
 # initialize RRT_Dirtrel
-tree = RRT_Dirtrel(start_state, goal_state, sys, scene, collision_function)
+tree = RRT_Dirtrel(start_state, goal_states, sys, scene, collision_function)
 
 # run RRT_Dirtrel
 run_options = {
