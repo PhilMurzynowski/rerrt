@@ -62,7 +62,7 @@ class MySystem():
         self.nw = sys_opts['nw']
         self.dir = 1
 
-    def dynamics(self, state, input, uncertainty=None):
+    def dynamics(self, state, inputs, uncertainty=None):
 
         if uncertainty is None:
             uncertainty = np.zeros((self.nw, 1))
@@ -72,21 +72,21 @@ class MySystem():
             state[0] + self.dir*self.dt*(state[3]*np.cos(state[2])),
             state[1] + self.dir*self.dt*(state[3]*np.sin(state[2])),
             state[2] + self.dir*self.dt*(state[3]*np.tan(state[4] + uncertainty[0])),
-            state[3] + self.dir*self.dt*(input[0]),
-            state[4] + self.dir*self.dt*(input[1] + uncertainty[1])])
+            state[3] + self.dir*self.dt*(inputs[0]),
+            state[4] + self.dir*self.dt*(inputs[1] + uncertainty[1])])
         return x_next
 
-    def nextState(self, state, input):
-        # wrapper
+    def nextState(self, state, inputs):
+        # wrapper for forwards integration
         if self.dir == -1:
             self.dir = 1
-        return self.dynamics(state, input)
+        return self.dynamics(state, inputs)
 
-    def prevState(self, state, input):
+    def prevState(self, state, inputs):
         # backwards integration
         if self.dir == 1:
             self.dir = -1
-        return self.dynamics(state, input)
+        return self.dynamics(state, inputs)
 
     def getJacobians(self, x, u, w=None):
 

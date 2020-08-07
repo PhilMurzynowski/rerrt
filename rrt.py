@@ -82,11 +82,15 @@ class RRT:
            looking into Kinodynamic planner, OMPL, control-based planners or http://www.mit.edu/~dahleh/pubs/2.Real-Time%20Motion%20Planning%20for%20Agile%20Autonomous%20Vehicles.pdf"""
         # if system does not move on first timestep, will encounter error
         # will keep returning start node, as first in list
-        #dlist = [self.distance_metric(new_location, n.x[0:2]) for n in self.node_list]
         L = len(self.node_list)
-        dlist = [self.distance_metric(new_location, self.node_list[L-1-i].x[0:2]) for i in range(L)]
-        minind = dlist.index(min(dlist))
-        return self.node_list[L-1-minind]
+        closest_distance = np.Inf
+        closest_node = None
+        for i in range(L):
+            distance = self.distance_metric(new_location, self.node_list[L-1-i].x[:2])
+            if distance < closest_distance:
+                closest_distance = distance
+                closest_node = self.node_list[L-1-i]
+        return closest_node
 
 
     def steer(self, from_node, to_location, options):
@@ -107,15 +111,15 @@ class RRT:
         return best_x, best_u
 
 
-    def near(self, location, mu=3):
-        """Eqn 45, may want to read paper for probalistic
-            optimality guarantees, how to pick mu, gamma, etc
-            also could use kd trees for efficiency?"""
-        # implement eqn 46
-        r_n = min(np.inf, mu)
-        dlist = [self.distance_metric(new_location, n.x[0:2]) for n in self.node_list]
-        near_indices = [dlist.index(x) for x in dlist if x <= r_n]
-        return self.node_list[near_indices]
+    #def near(self, location, mu=3):
+    #    """Eqn 45, may want to read paper for probalistic
+    #        optimality guarantees, how to pick mu, gamma, etc
+    #        also could use kd trees for efficiency?"""
+    #    # implement eqn 46
+    #    r_n = min(np.inf, mu)
+    #    dlist = [self.distance_metric(new_location, n.x[0:2]) for n in self.node_list]
+    #    near_indices = [dlist.index(x) for x in dlist if x <= r_n]
+    #    return self.node_list[near_indices]
 
 
     def tree_expansion(self, options):
