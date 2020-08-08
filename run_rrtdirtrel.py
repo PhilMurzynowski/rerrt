@@ -45,7 +45,7 @@ rects.append(Rectangle([7, 4], 2.5, 1.5, angle=30.0))
 scene = Scene(start, goal, region, rects)
 
 sys_opts = {
-    'dt': 0.05,
+    'dt': 0.01,
     'nx': 5,
     'nu': 2,
     'nw': 2
@@ -55,7 +55,7 @@ sys = MySystem(sys_opts)
 # select input type
 # when cleaning up, convert to class for easier setup
 input_type = 'deterministic'
-u0max, u1max = 1, 1 
+u0max, u1max = 2, 2
 if input_type == 'deterministic':
     input_actions = [np.array([[acc], [ang_vel]]) for acc in np.linspace(-u0max, u0max, 2) for ang_vel in np.linspace(-u1max, u1max, 3)]
     numinput_samples = len(input_actions)
@@ -71,7 +71,7 @@ tree = RRT_Dirtrel(start_state, goal_states, sys, scene, collision_function)
 # run RRT_Dirtrel
 run_options = {
     'epsilon':          1,                              # :float:                       min dist to goal
-    'max_iter':         800,                            # :int:                         iterations
+    'max_iter':         2e3,                            # :int:                         iterations
     'plot_freq':        None,                           # :int:                         plot tree expansion freq. (num iterations), Update
     'plot_size':        (10, 10),                       # :(int, int):                  plot size
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction

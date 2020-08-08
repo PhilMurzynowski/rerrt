@@ -127,25 +127,31 @@ class RRT_Dirtrel(RRT):
         L = len(self.node_list)
         smallest_distance = np.Inf
         reaching_node = None
+        best_reach = None
         for i in range(L):
-            for key, reach in self.node_list[L-1-i]:
+            for key, reach in self.node_list[L-1-i].reachable.items():
                 distance = self.distance_metric(new_location, reach)
                 if distance < smallest_distance:
                     smallest_distance = distance
                     reaching_node = self.node_list[L-1-i]
-                    closest_reach = key
-        return reaching_node, key, smallest_distance
+                    best_reach = key
+        return reaching_node, best_reach, smallest_distance
 
     def extendReachableState(self, opts):
         # performs sampling and returns nearest reachable state
         # if nearest state is a node not a reachable state, tries again
         best_reach_dist = np.Inf
         best_node_dist = np.Inf
+        extra_attempts = -1
         while best_node_dist <= best_reach_dist:
             samp = self.sample(opts)
             reaching_node, key, best_reach_dist = self.nearestReachableState(samp)
             node, best_node_dist = self.nearest_node(samp, get_dist=True)
-        raise NotImplementedError
+            extra_attempts += 1
+        new_node = self.DirtrelNode(reaching_node.popReachable(key), reaching_node)
+        # after conversion to node no longer counted as reachable state
+        # abusing key and idx here, whoops
+        return new_node, opts['input_actions'][key], extra_attempts
 
     def extend(self, opts):
         # returns a node and the control input used
@@ -181,6 +187,7 @@ class RRT_Dirtrel(RRT):
             # self.starts are the goals here, growing backwards, apologies aha
             for i in range(len(self.starts)):
                 self.starts[i].setSi(np.zeros((opts['nx'], opts['nx'])))
+                self.starts[i].calcReachable(self.system, opts)
             self.ellipseTreeBackwardExpansion(opts)
 
     def ellipseTreeForwardExpansion(self, opts):
@@ -212,7 +219,11 @@ class RRT_Dirtrel(RRT):
             iter_step+=1
             printProgressBar('Iterations complete', iter_step, opts['max_iter'])
             printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)
-            new_nodes, new_u = self.extendMultiTimeStep(opts)
+            #new_nodes, new_u = self.extendMultiTimeStep(opts)
+            # hacky
+            new_node, new_u, extra_attempts = self.extendReachableState(opts)
+            iter_step += extra_attempts
+            new_nodes = [new_node]
             valid_extension = True
             for new_node in new_nodes:
                 if not self.inRegion(new_node.x[0:2]) or self.inObstacle(new_node.x[0:2]):
