@@ -89,6 +89,16 @@ class MySystem():
             self.dir = -1
         return self.dynamics(state, inputs)
 
+    def simulate(self, state, inputs, num_steps, direction):
+        # simulate num_steps with single input
+        x = state
+        for i in range(num_steps):
+            if direction == 'forward':
+                x = self.nextState(x, inputs)
+            elif direction == 'backward':
+                x = self.prevState(x, inputs)
+        return x
+
     def getJacobians(self, x, u, w=None):
 
         if w is None:

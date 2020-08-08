@@ -85,11 +85,21 @@ class RRT_Dirtrel(RRT):
             nextNode.setEi(En)
 
         def calcReachable(self, system, opts):
+            # not sure yet whether including collision checking here
+            # will be effecient or detrimental, depends on 
+            # likelihood of being in obstacle vs likelihood of being selected
             for i, action in enumerate(opts['input_actions']):
                 if opts['direction'] == 'forward':
                     self.reachable[i] = system.nextState(self.x, action)
                 elif opts['direction'] == 'backward':
                     self.reachable[i] = system.prevState(self.x, action)
+
+        def calcReachableMutliTimestep(self, system, opts):
+            # not sure yet whether including collision checking here
+            # will be effecient or detrimental, depends on 
+            # likelihood of being in obstacle vs likelihood of being selected
+            for i, action in enumerate(opts['input_actions']):
+                self.reachable[i] = system.simulate(self.x, action, opts['extend_by'], opts['direction'])
 
         def popReachable(self, idx):
             return self.reachable.pop(idx)
@@ -137,7 +147,7 @@ class RRT_Dirtrel(RRT):
                     best_reach = key
         return reaching_node, best_reach, smallest_distance
 
-    def extendReachableState(self, opts):
+    def extendReachable(self, opts):
         # performs sampling and returns nearest reachable state
         # if nearest state is a node not a reachable state, tries again
         best_reach_dist = np.Inf
@@ -152,6 +162,29 @@ class RRT_Dirtrel(RRT):
         # after conversion to node no longer counted as reachable state
         # abusing key and idx here, whoops
         return new_node, opts['input_actions'][key], extra_attempts
+
+    def extendReachableMultiTimeStep(self, opts):
+        # performs sampling and returns nearest reachable state
+        # if nearest state is a node not a reachable state, tries again
+        best_reach_dist = np.Inf
+        best_node_dist = np.Inf
+        extra_attempts = -1
+        while best_node_dist <= best_reach_dist:
+            samp = self.sample(opts)
+            reaching_node, key, best_reach_dist = self.nearestReachableState(samp)
+            node, best_node_dist = self.nearest_node(samp, get_dist=True)
+            extra_attempts += 1
+        new_nodes = []
+        # remove reachable state, inefficient because recalculating here
+        # after conversion to node no longer counted as reachable state
+        # abusing key and idx here, whoops
+        reaching_node.popReachable(key)
+        parent = reaching_node
+        for i in range(opts['extend_by']):
+            xsim = self.system.simulate(parent.x, opts['input_actions'][key], 1, opts['direction'])
+            new_nodes.append(self.DirtrelNode(xsim, parent))
+            parent = new_nodes[-1]
+        return new_nodes, opts['input_actions'][key], extra_attempts
 
     def extend(self, opts):
         # returns a node and the control input used
@@ -221,9 +254,8 @@ class RRT_Dirtrel(RRT):
             printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)
             #new_nodes, new_u = self.extendMultiTimeStep(opts)
             # hacky
-            new_node, new_u, extra_attempts = self.extendReachableState(opts)
+            new_nodes, new_u, extra_attempts = self.extendReachableMultiTimeStep(opts)
             iter_step += extra_attempts
-            new_nodes = [new_node]
             valid_extension = True
             for new_node in new_nodes:
                 if not self.inRegion(new_node.x[0:2]) or self.inObstacle(new_node.x[0:2]):
