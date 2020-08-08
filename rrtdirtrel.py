@@ -94,7 +94,7 @@ class RRT_Dirtrel(RRT):
                 elif opts['direction'] == 'backward':
                     self.reachable[i] = system.prevState(self.x, action)
 
-        def calcReachableMutliTimestep(self, system, opts):
+        def calcReachableMultiTimeStep(self, system, opts):
             # not sure yet whether including collision checking here
             # will be effecient or detrimental, depends on 
             # likelihood of being in obstacle vs likelihood of being selected
@@ -106,6 +106,22 @@ class RRT_Dirtrel(RRT):
 
         def calcCost(self):
             pass
+
+        def plotNode(self, new_figure=False):
+            # debug tool
+            if new_figure:
+                print('new figure')
+                plt.figure()
+            #for key, reach in self.reachable.items():
+                #print(reach)
+                # using plot to get lines
+                #plt.plot([self.x[0], reach[0]], [self.x[1], reach[1]], color='magenta')
+            reach_xs = [reach[0] for key, reach in self.reachable.items()]
+            reach_ys = [reach[1] for key, reach in self.reachable.items()]
+            plt.scatter(reach_xs, reach_ys)
+            plt.scatter(self.x[0], self.x[1])
+            if new_figure:
+                plt.show()
 
 
     def __init__(self, start, goals, system, scene, collision_function):
@@ -220,7 +236,8 @@ class RRT_Dirtrel(RRT):
             # self.starts are the goals here, growing backwards, apologies aha
             for i in range(len(self.starts)):
                 self.starts[i].setSi(np.zeros((opts['nx'], opts['nx'])))
-                self.starts[i].calcReachable(self.system, opts)
+                self.starts[i].calcReachableMultiTimeStep(self.system, opts)
+                #self.starts[i].plotNode(new_figure=True)
             self.ellipseTreeBackwardExpansion(opts)
 
     def ellipseTreeForwardExpansion(self, opts):
@@ -271,7 +288,7 @@ class RRT_Dirtrel(RRT):
             if valid_propogation:
                 self.node_list.extend(new_nodes)
                 for new_node in new_nodes:
-                    new_node.calcReachable(self.system, opts)
+                    new_node.calcReachableMultiTimeStep(self.system, opts)
                     new_dist = self.dist_to_goal(new_nodes[-1].x[0:2])
                     if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node
         # repoprogate from best start node for accurate graphing
@@ -322,4 +339,7 @@ class RRT_Dirtrel(RRT):
                 halfmtx_pts = n.ellipse.getHalfMtxPts()
                 plt.scatter(halfmtx_pts[0, :], halfmtx_pts[1, :])
 
-
+    def drawReachable(self, nodes):
+        for n in nodes:
+            for key, reach in n.reachable.items():
+                plt.plot([n.x[0], reach[0]], [n.x[1], reach[1]], color='magenta')

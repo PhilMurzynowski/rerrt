@@ -29,7 +29,7 @@ goal = [0, 0]
 # and ending state to be satisfied
 # one must be satisfied and returns solution closest to other desired state
 start_state = np.array(start + [-np.pi*2/3, 5, 0]).reshape(5, 1)
-num_goal_states = 20
+num_goal_states = 10
 eps = 1e-4
 goal_states = [np.array([goal[0]+eps*np.cos(theta)]+[goal[1]+eps*np.sin(theta)]+[(theta+np.pi)%(2*np.pi), 5, 0]).reshape(5, 1) for theta in np.linspace(-np.pi, np.pi, num_goal_states, endpoint=False)]
 region = Rectangle([-5, -5], 20, 20)
@@ -55,7 +55,7 @@ sys = MySystem(sys_opts)
 # select input type
 # when cleaning up, convert to class for easier setup
 input_type = 'deterministic'
-u0max, u1max = 2, 2
+u0max, u1max = 10, 10
 if input_type == 'deterministic':
     input_actions = [np.array([[acc], [ang_vel]]) for acc in np.linspace(-u0max, u0max, 2) for ang_vel in np.linspace(-u1max, u1max, 3)]
     numinput_samples = len(input_actions)
@@ -71,16 +71,16 @@ tree = RRT_Dirtrel(start_state, goal_states, sys, scene, collision_function)
 # run RRT_Dirtrel
 run_options = {
     'epsilon':          1,                              # :float:                       min dist to goal
-    'max_iter':         2e3,                            # :int:                         iterations
+    'max_iter':         200,                            # :int:                         iterations
     'plot_freq':        None,                           # :int:                         plot tree expansion freq. (num iterations), Update
     'plot_size':        (10, 10),                       # :(int, int):                  plot size
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
-    'goal_sample_rate': 0.15,                           # :float:                       goal sample freq. (out of 1)
+    'goal_sample_rate': 0.20,                           # :float:                       goal sample freq. (out of 1)
     'input_type':       input_type,                     # :'random'/'deterministic':    control sampling method 
     'input_max':        (u0max, u1max),                 # :(float,): (dim(input) x 1)   if input type random, max magnitude of each input
     'numinput_samples': numinput_samples,               # :int:                         if input_type random, num random samples, otherwise num actions
     'input_actions':    input_actions,                  # :list(inputs):                if input_type deterministic, possible inputs
-    'extend_by':        1,                              # :int:                         num timesteps to simulate in steer function with each extension
+    'extend_by':        10,                              # :int:                         num timesteps to simulate in steer function with each extension
     'nx':               sys_opts['nx'],                 # :int:                         dim of state
     'nu':               sys_opts['nu'],                 # :int:                         dim of input
     'nw':               sys_opts['nw'],                 # :int:                         dim of uncertainty
@@ -98,5 +98,6 @@ tree.draw_sceneandtree(size=(15, 15))
 tree.draw_path(final_path)
 # hlfmtxpts drawing currently is slow
 tree.drawEllipsoids(final_path, hlfmtxpts=True)
+tree.drawReachable(tree.node_list)
 print(' Finished')
 plt.show()
