@@ -38,7 +38,7 @@ region = Rectangle([-5, -5], 20, 20)
 # initialize obstacles
 rects = []
 # arguments: rectangle bottom left corner, width, height, angle from horizontal (deg)
-rects.append(Rectangle([2, 3], 3, 1.5, angle=120.0))
+rects.append(Rectangle([7, 11], 3, 1.5, angle=120.0))
 rects.append(Rectangle([7, 4], 2.5, 1.5, angle=30.0))
 
 # Scene describes the start, goal, obstacles, mostly for plotting
@@ -52,6 +52,16 @@ sys_opts = {
     }
 sys = MySystem(sys_opts)
 
+# select input type
+# when cleaning up, convert to class for easier setup
+input_type = 'deterministic'
+u0max, u1max = 1, 1 
+if input_type == 'deterministic':
+    input_actions = [np.array([[acc], [ang_vel]]) for acc in np.linspace(-u0max, u0max, 2) for ang_vel in np.linspace(-u1max, u1max, 3)]
+    numinput_samples = len(input_actions)
+elif input_type == 'random':
+    numinput_samples = 15
+
 col = CollisionDetection()
 collision_function = col.selectCollisionChecker('erHalfMtxPts')
 
@@ -60,24 +70,27 @@ tree = RRT_Dirtrel(start_state, goal_states, sys, scene, collision_function)
 
 # run RRT_Dirtrel
 run_options = {
-    'epsilon':          1,                              # min dist to goal
-    'max_iter':         500,                            # iterations
-    'plot_freq':        None,                           # how often to plot tree expansion (num iterations)
-    'plot_size':        (10, 10),                       # plot size
-    'direction':        'backward',                    # determine whether to propogate tree forwards or backwards
-    'goal_sample_rate': 0.5,                            # favor tree expansion towards goal
-    'input_max':        5,                              # max magnitude of input in any one dimension
-    'input_samples':    20,                             # number of random inputs to sample in steering method
-    'nx':               sys_opts['nx'],
-    'nu':               sys_opts['nu'],
-    'nw':               sys_opts['nw'],
-    'D':                0.05*np.eye(sys_opts['nw']),
-    'E0':               0.05*np.eye(sys_opts['nx']),
-    'Ql':               np.eye(sys_opts['nx']),         # use if robust cost from DIRTREL paper added
-    'Rl':               np.eye(sys_opts['nu']),         # ...
-    'QlN':              np.eye(sys_opts['nx']),         # ...
-    'Q':                np.diag((5, 5, 0, 0, 0)),
-    'R':                np.eye(sys_opts['nu'])}
+    'epsilon':          1,                              # :float:                       min dist to goal
+    'max_iter':         800,                            # :int:                         iterations
+    'plot_freq':        None,                           # :int:                         plot tree expansion freq. (num iterations), Update
+    'plot_size':        (10, 10),                       # :(int, int):                  plot size
+    'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
+    'goal_sample_rate': 0.15,                           # :float:                       goal sample freq. (out of 1)
+    'input_type':       input_type,                     # :'random'/'deterministic':    control sampling method 
+    'input_max':        (u0max, u1max),                 # :(float,): (dim(input) x 1)   if input type random, max magnitude of each input
+    'numinput_samples': numinput_samples,               # :int:                         if input_type random, num random samples, otherwise num actions
+    'input_actions':    input_actions,                  # :list(inputs):                if input_type deterministic, possible inputs
+    'extend_by':        1,                              # :int:                         num timesteps to simulate in steer function with each extension
+    'nx':               sys_opts['nx'],                 # :int:                         dim of state
+    'nu':               sys_opts['nu'],                 # :int:                         dim of input
+    'nw':               sys_opts['nw'],                 # :int:                         dim of uncertainty
+    'D':                0.05*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
+    'E0':               0.05*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
+    'Ql':               np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           use if robust cost from DIRTREL paper added
+    'Rl':               np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           see above
+    'QlN':              np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           see above
+    'Q':                np.diag((5, 5, 0, 0, 0)),       # :nparray: (nx x nx)           TVLQR Q
+    'R':                np.eye(sys_opts['nu'])}         # :nparray: (nu x nu)           TVLQR R
 
 tree.ellipseTreeExpansion(run_options)
 final_path = tree.final_path()

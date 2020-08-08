@@ -38,6 +38,7 @@ class RRT_Dirtrel(RRT):
             self.H = None
             self.E = None
             self.ellipse = None
+            self.reachable = {}
 
         def createEllipse(self):
             # let EE bet E^1/2
@@ -83,6 +84,16 @@ class RRT_Dirtrel(RRT):
             nextNode.setHi(Hn)
             nextNode.setEi(En)
 
+        def calcReachable(self, system, opts):
+            for i, action in enumerate(opts['input_actions']):
+                if opts['direction'] == 'forward':
+                    self.reachable[i] = system.nextState(self.x, action)
+                elif opts['direction'] == 'backward':
+                    self.reachable[i] = system.prevState(self.x, action)
+
+        def popReachable(self, idx):
+            return self.reachable.pop(idx)
+
         def calcCost(self):
             pass
 
@@ -111,6 +122,31 @@ class RRT_Dirtrel(RRT):
             if self.nodeCollision(node): return True
         return False
 
+    def nearestReachableState(self, new_location):
+        # returns node and key identifying best reachable state
+        L = len(self.node_list)
+        smallest_distance = np.Inf
+        reaching_node = None
+        for i in range(L):
+            for key, reach in self.node_list[L-1-i]:
+                distance = self.distance_metric(new_location, reach)
+                if distance < smallest_distance:
+                    smallest_distance = distance
+                    reaching_node = self.node_list[L-1-i]
+                    closest_reach = key
+        return reaching_node, key, smallest_distance
+
+    def extendReachableState(self, opts):
+        # performs sampling and returns nearest reachable state
+        # if nearest state is a node not a reachable state, tries again
+        best_reach_dist = np.Inf
+        best_node_dist = np.Inf
+        while best_node_dist <= best_reach_dist:
+            samp = self.sample(opts)
+            reaching_node, key, best_reach_dist = self.nearestReachableState(samp)
+            node, best_node_dist = self.nearest_node(samp, get_dist=True)
+        raise NotImplementedError
+
     def extend(self, opts):
         # returns a node and the control input used
         samp = self.sample(opts)
@@ -118,6 +154,16 @@ class RRT_Dirtrel(RRT):
         new_x, new_u = self.steer(closest, samp, opts)
         new_node = self.DirtrelNode(new_x, closest)
         return new_node, new_u
+
+    def extendMultiTimeStep(self, opts):
+        # returns a node and the control input used
+        samp = self.sample(opts)
+        closest = self.nearest_node(samp)
+        extension, new_u = self.steerMultiTimeStep(closest, samp, opts)
+        new_nodes = [self.DirtrelNode(extension[0], closest)]
+        for i in range(1, opts['extend_by']):
+            new_nodes.append(self.DirtrelNode(extension[i], new_nodes[-1]))
+        return new_nodes, new_u
 
     def ellipseTreeExpansion(self, opts):
         if opts['direction'] == 'forward':
@@ -166,17 +212,25 @@ class RRT_Dirtrel(RRT):
             iter_step+=1
             printProgressBar('Iterations complete', iter_step, opts['max_iter'])
             printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)
-            new_node, new_u = self.extend(opts)
-            if not self.inRegion(new_node.x[0:2]) or self.inObstacle(new_node.x[0:2]):
-                # invalid node
-                continue
-            new_node.set_u(new_u)
-            new_node.getJacobians(self.system)
-            valid_propogation = self.repropogateEllipses(new_node, opts)
+            new_nodes, new_u = self.extendMultiTimeStep(opts)
+            valid_extension = True
+            for new_node in new_nodes:
+                if not self.inRegion(new_node.x[0:2]) or self.inObstacle(new_node.x[0:2]):
+                    # invalid node
+                    valid_extension = False
+            if not valid_extension: continue
+            for new_node in new_nodes:
+                new_node.set_u(new_u)
+                new_node.getJacobians(self.system)
+                new_node.calcSi(opts['Q'], opts['R'], new_node.parent)
+                new_node.calcKi(opts['R'], new_node.parent)
+            valid_propogation = self.repropogateEllipses(new_nodes[-1], opts)
             if valid_propogation:
-                self.node_list.append(new_node)
-                new_dist = self.dist_to_goal(new_node.x[0:2])
-                if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node
+                self.node_list.extend(new_nodes)
+                for new_node in new_nodes:
+                    new_node.calcReachable(self.system, opts)
+                    new_dist = self.dist_to_goal(new_nodes[-1].x[0:2])
+                    if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node
         # repoprogate from best start node for accurate graphing
         if best_start_node is not None:
             final_propogation_valid = self.repropogateEllipses(best_start_node, opts)
@@ -185,8 +239,6 @@ class RRT_Dirtrel(RRT):
     def repropogateEllipses(self, startnode, opts):
         # currently this method is only valid for backwards RRT
         # avoid creating lists by checking collision immediately after propogating ellipse
-        startnode.calcSi(opts['Q'], opts['R'], startnode.parent)
-        startnode.calcKi(opts['R'], startnode.parent)
         startnode.setHi(np.zeros((opts['nx'], opts['nw'])))
         startnode.setEi(opts['E0'])
         if self.nodeCollision(startnode): return False
