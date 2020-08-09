@@ -47,7 +47,7 @@ class RRT_Dirtrel(RRT):
             A = np.array([[1, 0, 0, 0, 0], [0, 1, 0, 0, 0]])
             EEw = np.linalg.pinv(A@EE)
             ellipse_projection = np.linalg.inv(EEw.T@EEw)
-            self.ellipse =  Ellipse(self.x[0:2], ellipse_projection)
+            self.ellipse = Ellipse(self.x[0:2], ellipse_projection)
 
         def setEi(self, Ei):
             self.E = Ei
@@ -107,19 +107,19 @@ class RRT_Dirtrel(RRT):
         def calcCost(self):
             pass
 
-        def plotNode(self, new_figure=False):
+        def plotNode(self, new_figure=False, color=None):
             # debug tool
             if new_figure:
                 print('new figure')
                 plt.figure()
-            #for key, reach in self.reachable.items():
-                #print(reach)
+            for key, reach in self.reachable.items():
                 # using plot to get lines
-                #plt.plot([self.x[0], reach[0]], [self.x[1], reach[1]], color='magenta')
-            reach_xs = [reach[0] for key, reach in self.reachable.items()]
-            reach_ys = [reach[1] for key, reach in self.reachable.items()]
-            plt.scatter(reach_xs, reach_ys)
-            plt.scatter(self.x[0], self.x[1])
+                plt.plot([self.x[0], reach[0]], [self.x[1], reach[1]], color=color)
+            #reach_xs = [reach[0] for key, reach in self.reachable.items()]
+            #reach_ys = [reach[1] for key, reach in self.reachable.items()]
+            #plt.scatter(reach_xs, reach_ys)
+            plt.scatter(self.x[0], self.x[1], color=color)
+            self.ellipse.drawEllipse(color=color)
             if new_figure:
                 plt.show()
 
@@ -267,8 +267,6 @@ class RRT_Dirtrel(RRT):
         best_start_node = None
         while best_dist > opts['epsilon'] and iter_step < opts['max_iter']:
             iter_step+=1
-            printProgressBar('Iterations complete', iter_step, opts['max_iter'])
-            printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)
             #new_nodes, new_u = self.extendMultiTimeStep(opts)
             # hacky
             new_nodes, new_u, extra_attempts = self.extendReachableMultiTimeStep(opts)
@@ -291,6 +289,8 @@ class RRT_Dirtrel(RRT):
                     new_node.calcReachableMultiTimeStep(self.system, opts)
                     new_dist = self.dist_to_goal(new_nodes[-1].x[0:2])
                     if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node
+            printProgressBar('Iterations complete', iter_step, opts['max_iter'])
+            printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)
         # repoprogate from best start node for accurate graphing
         if best_start_node is not None:
             final_propogation_valid = self.repropogateEllipses(best_start_node, opts)
@@ -330,16 +330,24 @@ class RRT_Dirtrel(RRT):
             path[i].calcKi(opts['R'], path[i+1])
             path[i].propogateEllipse(opts['D'], path[i+1])
 
-    def drawEllipsoids(self, nodes, hlfmtxpts=False):
-        for n in nodes:
-            n.ellipse.convertFromMatrix()
-            n.ellipse.drawEllipse()
-        if hlfmtxpts == True:
-            for n in nodes:
-                halfmtx_pts = n.ellipse.getHalfMtxPts()
-                plt.scatter(halfmtx_pts[0, :], halfmtx_pts[1, :])
+    def drawEllipsoids(self, nodes, hlfmtxpts=False, fraction=1.00):
+        freq = 1/fraction
+        for i, n in enumerate(nodes):
+            if i%freq==0:
+                if n.ellipse is None:
+                    # if a goalstate was never propogated from will not have an ellipse set
+                    continue
+                n.ellipse.convertFromMatrix()
+                n.ellipse.drawEllipse()
+                if hlfmtxpts:
+                    halfmtx_pts = n.ellipse.getHalfMtxPts()
+                    plt.scatter(halfmtx_pts[0, :], halfmtx_pts[1, :])
 
-    def drawReachable(self, nodes):
-        for n in nodes:
-            for key, reach in n.reachable.items():
-                plt.plot([n.x[0], reach[0]], [n.x[1], reach[1]], color='magenta')
+    def drawReachable(self, nodes, color='limegreen', fraction=1.00):
+        freq = 1/fraction
+        plotnum = 0
+        for node in nodes:
+            for key, reach in node.reachable.items():
+                plotnum += 1
+                if plotnum%freq==0:
+                    plt.plot([node.x[0], reach[0]], [node.x[1], reach[1]], color=color)

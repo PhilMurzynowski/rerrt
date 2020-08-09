@@ -71,7 +71,7 @@ tree = RRT_Dirtrel(start_state, goal_states, sys, scene, collision_function)
 # run RRT_Dirtrel
 run_options = {
     'epsilon':          1,                              # :float:                       min dist to goal
-    'max_iter':         200,                            # :int:                         iterations
+    'max_iter':         100,                            # :int:                         iterations
     'plot_freq':        None,                           # :int:                         plot tree expansion freq. (num iterations), Update
     'plot_size':        (10, 10),                       # :(int, int):                  plot size
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
@@ -80,7 +80,7 @@ run_options = {
     'input_max':        (u0max, u1max),                 # :(float,): (dim(input) x 1)   if input type random, max magnitude of each input
     'numinput_samples': numinput_samples,               # :int:                         if input_type random, num random samples, otherwise num actions
     'input_actions':    input_actions,                  # :list(inputs):                if input_type deterministic, possible inputs
-    'extend_by':        10,                              # :int:                         num timesteps to simulate in steer function with each extension
+    'extend_by':        10,                             # :int:                         num timesteps to simulate in steer function with each extension
     'nx':               sys_opts['nx'],                 # :int:                         dim of state
     'nu':               sys_opts['nu'],                 # :int:                         dim of input
     'nw':               sys_opts['nw'],                 # :int:                         dim of uncertainty
@@ -93,11 +93,41 @@ run_options = {
     'R':                np.eye(sys_opts['nu'])}         # :nparray: (nu x nu)           TVLQR R
 
 tree.ellipseTreeExpansion(run_options)
+print('\nPlotting...')
 final_path = tree.final_path()
-tree.draw_sceneandtree(size=(15, 15))
-tree.draw_path(final_path)
+# order determines what gets occluded in figure
+# fractional plotting is used as dataset becomes huge
+tree.draw_scene(size=(15, 15))
+#tree.drawReachable(tree.node_list, fraction=0.25)
+tree.draw_tree(color='gray')
+#tree.draw_path(final_path)
 # hlfmtxpts drawing currently is slow
-tree.drawEllipsoids(final_path, hlfmtxpts=True)
-tree.drawReachable(tree.node_list)
-print(' Finished')
+#tree.drawEllipsoids(final_path, hlfmtxpts=True, fraction=0.25)
+#tree.drawEllipsoids(tree.node_list, hlfmtxpts=True, fraction=1.00)
+
+# ellipse debugging
+plotmax = 10
+plotted = 0
+gobackgen = 5
+for n in tree.node_list:
+    if n.ellipse is None:
+        continue
+    n.ellipse.convertFromMatrix()
+    if n.ellipse.h > 5 or n.ellipse.w > 5:
+        # maybe add plotting parents functionality
+        gen = 0
+        while gen < gobackgen and n.parent is not None:
+            r, g, b = np.random.rand(3, 1)
+            color = (r[0], g[0], b[0])
+            n.plotNode(new_figure=False, color=color)
+            if n.u[0] != -10:
+                print('hit')
+                print(n.u)
+                print(n.x)
+            n = n.parent
+        plotted+=1
+    if plotted >= plotmax:
+        break
+
+print('Finished')
 plt.show()

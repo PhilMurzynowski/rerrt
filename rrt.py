@@ -201,14 +201,13 @@ class RRT:
                 plt.plot([node.x[0], node.parent.x[0]], [node.x[1], node.parent.x[1]], "-r")
 
 
-    def draw_tree(self):
+    def draw_tree(self, color='blue'):
         for node in self.node_list:
             if node.parent:
-                plt.plot([node.x[0], node.parent.x[0]], [node.x[1], node.parent.x[1]], "-b")
+                plt.plot([node.x[0], node.parent.x[0]], [node.x[1], node.parent.x[1]], color=color)
 
 
-    def draw_sceneandtree(self, size=(5, 5)):
+    def draw_scene(self, size=(5, 5)):
         plt.figure(figsize=size)
         self.scene.plot_scene()
-        self.draw_tree()
 
