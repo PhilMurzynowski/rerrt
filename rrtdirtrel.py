@@ -39,6 +39,9 @@ class RRT_Dirtrel(RRT):
             self.E = None
             self.ellipse = None
             self.reachable = {}
+            self.children = 0
+            if self.parent is not None:
+                self.parent.children += 1
 
         def createEllipse(self):
             # let EE bet E^1/2
@@ -280,7 +283,7 @@ class RRT_Dirtrel(RRT):
                 new_node.getJacobians(self.system)
                 new_node.calcSi(opts['Q'], opts['R'], new_node.parent)
                 new_node.calcKi(opts['R'], new_node.parent)
-            valid_propogation = self.repropogateEllipses(new_nodes[-1], opts)
+            valid_propogation = self.repropagateEllipses(new_nodes[-1], opts)
             if valid_propogation:
                 self.node_list.extend(new_nodes)
                 for new_node in new_nodes:
@@ -291,10 +294,10 @@ class RRT_Dirtrel(RRT):
             printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)
         # repoprogate from best start node for accurate graphing
         assert best_start_node is not None, 'Did not find good node to start from'
-        final_propogation_valid = self.repropogateEllipses(best_start_node, opts)
+        final_propogation_valid = self.repropagateEllipses(best_start_node, opts)
         assert final_propogation_valid
 
-    def repropogateEllipses(self, startnode, opts):
+    def repropagateEllipses(self, startnode, opts):
         # currently this method is only valid for backwards RRT
         # avoid creating lists by checking collision immediately after propogating ellipse
         startnode.setHi(np.zeros((opts['nx'], opts['nw'])))
@@ -328,7 +331,7 @@ class RRT_Dirtrel(RRT):
             path[i].calcKi(opts['R'], path[i+1])
             path[i].propogateEllipse(opts['D'], path[i+1])
 
-    def drawEllipsoids(self, nodes, hlfmtxpts=False, fraction=1.00):
+    def drawEllipsoids(self, nodes, hlfmtxpts=False, color='gray', fraction=1.00):
         freq = 1/fraction
         for i, n in enumerate(nodes):
             if i%freq==0:
@@ -336,10 +339,29 @@ class RRT_Dirtrel(RRT):
                     # if a goalstate was never propogated from will not have an ellipse set
                     continue
                 n.ellipse.convertFromMatrix()
-                n.ellipse.drawEllipse()
+                n.ellipse.drawEllipse(color=color)
                 if hlfmtxpts:
                     halfmtx_pts = n.ellipse.getHalfMtxPts()
                     plt.scatter(halfmtx_pts[0, :], halfmtx_pts[1, :])
+
+    def drawEllipsoidTree(self, opts):
+        # ellipses at each node currently only keep the last propogated ellipse
+        # otherwise would be extremely memory intensive
+        # so if the path branches only the last propogated value will be kept
+        # basic way to draw all ellipses with backwards RRT must:
+        # find all valid start nodes and for each start node:
+        # reprogate from that start node and draw ellipses
+        if opts['direction'] == 'backward':
+            startnodes = (n for n in self.node_list if n.children==0)
+            for startnode in startnodes:
+                valid_propagation = self.repropagateEllipses(startnode, opts)
+                assert valid_propagation, 'BUG'
+                path = self.getPath(startnode, reverse=False)
+                r, g, b = np.random.rand(3, 1)
+                self.drawEllipsoids(path, color=(r[0], g[0], b[0]))
+        elif opts['direction'] == 'forward':
+            raise NotImplementedError('Not implemented yet for forward RRT')
+
 
     def drawReachable(self, nodes, color='limegreen', fraction=1.00):
         freq = 1/fraction

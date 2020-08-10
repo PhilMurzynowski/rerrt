@@ -179,7 +179,8 @@ class RRT:
         #assert best_dist_to_goal <= epsilon
 
 
-    def getPath(self, endnode, reverse=True):
+    def getPath(self, endnode, reverse=True, gen=False):
+        # use generators eventually
         path = [endnode]
         node = endnode
         while node.parent is not None:

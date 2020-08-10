@@ -72,7 +72,7 @@ tree = RRT_Dirtrel(start_state, goal_states, sys, scene, collision_function)
 # run RRT_Dirtrel
 run_options = {
     'epsilon':          1,                              # :float:                       min dist to goal
-    'max_iter':         100,                            # :int:                         iterations
+    'max_iter':         50,                            # :int:                         iterations
     'plot_freq':        None,                           # :int:                         plot tree expansion freq. (num iterations), Update
     'plot_size':        (10, 10),                       # :(int, int):                  plot size
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
@@ -103,7 +103,8 @@ tree.draw_scene(size=(15, 15))
 tree.draw_tree(color='blue')
 #tree.draw_path(final_path, color='red')
 # hlfmtxpts drawing currently is slow
-tree.drawEllipsoids(final_path, hlfmtxpts=False, fraction=1.00)
+#tree.drawEllipsoids(final_path, hlfmtxpts=False, fraction=1.00)
+tree.drawEllipsoidTree(run_options)
 #tree.drawEllipsoids(tree.node_list, hlfmtxpts=True, fraction=1.00)
 
 print('Finished')
