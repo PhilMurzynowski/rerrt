@@ -75,6 +75,9 @@ class MySystem():
             state[2] + self.dir*self.dt*(state[3]*np.tan(state[4] + uncertainty[0])),
             state[3] + self.dir*self.dt*(inputs[0]),
             state[4] + self.dir*self.dt*(inputs[1] + uncertainty[1])])
+        # may need to something about differentialibity and mod eventually
+        #if x_next[2] > 2*np.pi or x_next[2] < 2*np.pi:
+        #    x_next[2] = x_next[2]%(2*np.pi)
         return x_next
 
     def nextState(self, state, inputs):

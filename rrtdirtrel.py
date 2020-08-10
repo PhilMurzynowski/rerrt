@@ -267,8 +267,6 @@ class RRT_Dirtrel(RRT):
         best_start_node = None
         while best_dist > opts['epsilon'] and iter_step < opts['max_iter']:
             iter_step+=1
-            #new_nodes, new_u = self.extendMultiTimeStep(opts)
-            # hacky
             new_nodes, new_u, extra_attempts = self.extendReachableMultiTimeStep(opts)
             iter_step += extra_attempts
             valid_extension = True
@@ -287,14 +285,14 @@ class RRT_Dirtrel(RRT):
                 self.node_list.extend(new_nodes)
                 for new_node in new_nodes:
                     new_node.calcReachableMultiTimeStep(self.system, opts)
-                    new_dist = self.dist_to_goal(new_nodes[-1].x[0:2])
+                    new_dist = self.dist_to_goal(new_node.x[:2])
                     if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node
             printProgressBar('Iterations complete', iter_step, opts['max_iter'])
             printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)
         # repoprogate from best start node for accurate graphing
-        if best_start_node is not None:
-            final_propogation_valid = self.repropogateEllipses(best_start_node, opts)
-            assert final_propogation_valid
+        assert best_start_node is not None, 'Did not find good node to start from'
+        final_propogation_valid = self.repropogateEllipses(best_start_node, opts)
+        assert final_propogation_valid
 
     def repropogateEllipses(self, startnode, opts):
         # currently this method is only valid for backwards RRT

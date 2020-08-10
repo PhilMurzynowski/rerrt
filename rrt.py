@@ -195,10 +195,10 @@ class RRT:
         return self.getPath(final)
 
 
-    def draw_path(self, path):
+    def draw_path(self, path, color='blue'):
         for node in path:
             if node.parent:
-                plt.plot([node.x[0], node.parent.x[0]], [node.x[1], node.parent.x[1]], "-r")
+                plt.plot([node.x[0], node.parent.x[0]], [node.x[1], node.parent.x[1]], color=color)
 
 
     def draw_tree(self, color='blue'):

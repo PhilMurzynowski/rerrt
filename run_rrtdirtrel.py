@@ -31,7 +31,8 @@ goal = [0, 0]
 start_state = np.array(start + [-np.pi*2/3, 5, 0]).reshape(5, 1)
 num_goal_states = 10
 eps = 1e-4
-goal_states = [np.array([goal[0]+eps*np.cos(theta)]+[goal[1]+eps*np.sin(theta)]+[(theta+np.pi)%(2*np.pi), 5, 0]).reshape(5, 1) for theta in np.linspace(-np.pi, np.pi, num_goal_states, endpoint=False)]
+goal_speed = 1
+goal_states = [np.array([goal[0]+eps*np.cos(theta)]+[goal[1]+eps*np.sin(theta)]+[(theta+np.pi)%(2*np.pi), goal_speed, 0]).reshape(5, 1) for theta in np.linspace(-np.pi, np.pi, num_goal_states, endpoint=False)]
 region = Rectangle([-5, -5], 20, 20)
 
 
@@ -98,36 +99,51 @@ final_path = tree.final_path()
 # order determines what gets occluded in figure
 # fractional plotting is used as dataset becomes huge
 tree.draw_scene(size=(15, 15))
-#tree.drawReachable(tree.node_list, fraction=0.25)
-tree.draw_tree(color='gray')
-#tree.draw_path(final_path)
+#tree.drawReachable(tree.node_list, fraction=1.00)
+tree.draw_tree(color='blue')
+#tree.draw_path(final_path, color='red')
 # hlfmtxpts drawing currently is slow
-#tree.drawEllipsoids(final_path, hlfmtxpts=True, fraction=0.25)
+tree.drawEllipsoids(final_path, hlfmtxpts=False, fraction=1.00)
 #tree.drawEllipsoids(tree.node_list, hlfmtxpts=True, fraction=1.00)
-
-# ellipse debugging
-plotmax = 10
-plotted = 0
-gobackgen = 5
-for n in tree.node_list:
-    if n.ellipse is None:
-        continue
-    n.ellipse.convertFromMatrix()
-    if n.ellipse.h > 5 or n.ellipse.w > 5:
-        # maybe add plotting parents functionality
-        gen = 0
-        while gen < gobackgen and n.parent is not None:
-            r, g, b = np.random.rand(3, 1)
-            color = (r[0], g[0], b[0])
-            n.plotNode(new_figure=False, color=color)
-            if n.u[0] != -10:
-                print('hit')
-                print(n.u)
-                print(n.x)
-            n = n.parent
-        plotted+=1
-    if plotted >= plotmax:
-        break
 
 print('Finished')
 plt.show()
+
+
+
+
+
+# cleanup
+# ellipse debugging
+#def debugEllipses():
+#    plotmax = 5
+#    plotted = 0
+#    gobackgen = 0
+#    threshold = 10
+#    for n in tree.node_list:
+#        if n.ellipse is None:
+#            continue
+#        n.ellipse.convertFromMatrix()
+#        if n.ellipse.h > threshold or n.ellipse.w > threshold:
+#            gen = 0
+#            while gen <= gobackgen and n.parent is not None:
+#                if gen == 0:
+#                    r, g, b = np.random.rand(3, 1)
+#                else:
+#                    r, g, b = ([0.3], [0.3], [0.3])
+#                color = (r[0], g[0], b[0])
+#                n.plotNode(new_figure=False, color=color)
+#                print(f'x, h, w:\n {n.x, n.ellipse.h, n.ellipse.w}')
+#                print(f'n.ellipse.mtx:\n {n.ellipse.mtx}')
+#                #print(f'n.E:\n {n.E}')
+#                #print(f'n.parent.H: {n.parent.H}')
+#                #print(f'n.S:\n {n.S}')
+#                #print(f'n.parent.u:\n {n.parent.u}')
+#                #print(f'n.parent.K:\n {n.parent.K}')
+#                if n.parent.u is not None and n.parent.u[0] != -10:
+#                    print('hit')
+#                n = n.parent
+#                gen += 1
+#            plotted+=1
+#        if plotted >= plotmax:
+#            break
