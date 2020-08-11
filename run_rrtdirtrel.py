@@ -14,7 +14,7 @@ import matplotlib.patches as patches
 from rrt import RRT
 from shapes import Rectangle, Ellipse
 from collision import CollisionDetection
-from setup import Scene, MySystem
+from setup import Scene, MySystem, pickRandomColor
 from rrtdirtrel import RRT_Dirtrel
 
 
@@ -46,7 +46,7 @@ rects.append(Rectangle([7, 4], 2.5, 1.5, angle=30.0))
 scene = Scene(start, goal, region, rects)
 
 sys_opts = {
-    'dt': 0.01,
+    'dt': 0.02,
     'nx': 5,
     'nu': 2,
     'nw': 2
@@ -76,6 +76,7 @@ run_options = {
     'plot_freq':        None,                           # :int:                         plot tree expansion freq. (num iterations), Update
     'plot_size':        (10, 10),                       # :(int, int):                  plot size
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
+    'track_children':   True,                           # :bool:                        keep record of children of node
     'goal_sample_rate': 0.20,                           # :float:                       goal sample freq. (out of 1)
     'input_type':       input_type,                     # :'random'/'deterministic':    control sampling method 
     'input_max':        (u0max, u1max),                 # :(float,): (dim(input) x 1)   if input type random, max magnitude of each input
@@ -85,8 +86,8 @@ run_options = {
     'nx':               sys_opts['nx'],                 # :int:                         dim of state
     'nu':               sys_opts['nu'],                 # :int:                         dim of input
     'nw':               sys_opts['nw'],                 # :int:                         dim of uncertainty
-    'D':                0.05*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
-    'E0':               0.05*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
+    'D':                0.0001*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
+    'E0':               0.01*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
     'Ql':               np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           use if robust cost from DIRTREL paper added
     'Rl':               np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           see above
     'QlN':              np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           see above
@@ -104,9 +105,49 @@ tree.draw_tree(color='blue')
 #tree.draw_path(final_path, color='red')
 # hlfmtxpts drawing currently is slow
 #tree.drawEllipsoids(final_path, hlfmtxpts=False, fraction=1.00)
-tree.drawEllipsoidTree(run_options)
-#tree.drawEllipsoids(tree.node_list, hlfmtxpts=True, fraction=1.00)
+#tree.drawEllipsoidTree(run_options)
 
+# cleanup
+# ellipse debugging
+
+def traceChildren(node, genleft, color, plotted):
+    node.ellipse.convertFromMatrix()
+    node.plotNode(new_figure=False, color=color)
+    plotted.add(node)
+    print(f'gen: {genleft}')
+    print(f'color: {color}')
+    # inefficient but ok
+    print(f'x, h, w:\n {node.x, node.ellipse.h, node.ellipse.w}')
+    #print(f'n.ellipse.mtx:\n {n.ellipse.mtx}')
+    print(f'node.E:\n {node.E}')
+    #print(f'prevx?: {tree.node_list[i+1].x}')
+    #print(f'prevE?: {tree.node_list[i+1].E}')
+    if genleft > 0:
+        #new_color = (color[0]+0.01, color[1]+0.01, color[2]+0.01)
+        new_color = pickRandomColor()
+        for child in node.children:
+            traceChildren(child, genleft-1, new_color, plotted)
+
+
+def debugEllipses():
+    checkmax = 1
+    checked = 0
+    plotted = set()
+    sizethreshold = 4
+    genmax = 20
+    for n in tree.node_list:
+        if n.ellipse is None or n in plotted:
+            continue
+        n.ellipse.convertFromMatrix()
+        if n.ellipse.h > sizethreshold or n.ellipse.w > sizethreshold:
+            #traceChildren(n, genmax, color=pickRandomColor(threshold=0.21, individual=True), plotted=plotted)
+            traceChildren(n, genmax, color=pickRandomColor(), plotted=plotted)
+            checked+=1
+        if checked >= checkmax:
+            break
+    print(f'checked: {checked}')
+
+debugEllipses()
 print('Finished')
 plt.show()
 
@@ -114,37 +155,3 @@ plt.show()
 
 
 
-# cleanup
-# ellipse debugging
-#def debugEllipses():
-#    plotmax = 5
-#    plotted = 0
-#    gobackgen = 0
-#    threshold = 10
-#    for n in tree.node_list:
-#        if n.ellipse is None:
-#            continue
-#        n.ellipse.convertFromMatrix()
-#        if n.ellipse.h > threshold or n.ellipse.w > threshold:
-#            gen = 0
-#            while gen <= gobackgen and n.parent is not None:
-#                if gen == 0:
-#                    r, g, b = np.random.rand(3, 1)
-#                else:
-#                    r, g, b = ([0.3], [0.3], [0.3])
-#                color = (r[0], g[0], b[0])
-#                n.plotNode(new_figure=False, color=color)
-#                print(f'x, h, w:\n {n.x, n.ellipse.h, n.ellipse.w}')
-#                print(f'n.ellipse.mtx:\n {n.ellipse.mtx}')
-#                #print(f'n.E:\n {n.E}')
-#                #print(f'n.parent.H: {n.parent.H}')
-#                #print(f'n.S:\n {n.S}')
-#                #print(f'n.parent.u:\n {n.parent.u}')
-#                #print(f'n.parent.K:\n {n.parent.K}')
-#                if n.parent.u is not None and n.parent.u[0] != -10:
-#                    print('hit')
-#                n = n.parent
-#                gen += 1
-#            plotted+=1
-#        if plotted >= plotmax:
-#            break

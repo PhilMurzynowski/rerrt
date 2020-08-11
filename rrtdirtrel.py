@@ -15,7 +15,7 @@ import matplotlib.patches as patches
 from rrt import RRT
 from shapes import Rectangle, Ellipse
 from collision import CollisionDetection
-from setup import printProgressBar, Scene, MySystem
+from setup import printProgressBar, Scene, MySystem, pickRandomColor
 
 
 
@@ -25,7 +25,7 @@ class RRT_Dirtrel(RRT):
     class DirtrelNode(RRT.Node):
 
 
-        def __init__(self, x, parent=None, u=None):
+        def __init__(self, x, parent=None, u=None, opts=None):
             super().__init__(x, parent)
             # can linearize system at parent since control input is known
             # and propogate Ei
@@ -39,9 +39,8 @@ class RRT_Dirtrel(RRT):
             self.E = None
             self.ellipse = None
             self.reachable = {}
-            self.children = 0
-            if self.parent is not None:
-                self.parent.children += 1
+            if opts['track_children']:
+                self.children = []
 
         def createEllipse(self):
             # let EE bet E^1/2
@@ -50,7 +49,13 @@ class RRT_Dirtrel(RRT):
             A = np.array([[1, 0, 0, 0, 0], [0, 1, 0, 0, 0]])
             EEw = np.linalg.pinv(A@EE)
             ellipse_projection = np.linalg.inv(EEw.T@EEw)
-            self.ellipse = Ellipse(self.x[0:2], ellipse_projection)
+            self.ellipse = Ellipse(self.x[:2], ellipse_projection)
+
+            #EE = scipy.linalg.sqrtm(self.E)
+            #A = np.diag((1, 1, 0, 0, 0))
+            #EEw = np.linalg.pinv(A@EE)[:2, :2]
+            #ellipse_projection = np.linalg.inv(EEw.T@EEw)
+            #self.ellipse = Ellipse(self.x[:2], ellipse_projection)
 
         def setEi(self, Ei):
             self.E = Ei
@@ -84,6 +89,12 @@ class RRT_Dirtrel(RRT):
             En += self.G@D@self.G.T
             Hn = abk@self.H + self.G@D
 
+            # debug ellipses blowingg up
+            #if En[0, 0] > 100 or En[1, 1] > 100:
+            #    print(f'self.E:\n {self.E}')
+            #    print(f'En:\n {En}')
+            #    import pdb; pdb.set_trace()
+
             nextNode.setHi(Hn)
             nextNode.setEi(En)
 
@@ -106,6 +117,9 @@ class RRT_Dirtrel(RRT):
 
         def popReachable(self, idx):
             return self.reachable.pop(idx)
+
+        def addChild(self, child):
+            self.children.append(child)
 
         def calcCost(self):
             pass
@@ -177,7 +191,7 @@ class RRT_Dirtrel(RRT):
             reaching_node, key, best_reach_dist = self.nearestReachableState(samp)
             node, best_node_dist = self.nearest_node(samp, get_dist=True)
             extra_attempts += 1
-        new_node = self.DirtrelNode(reaching_node.popReachable(key), reaching_node)
+        new_node = self.DirtrelNode(reaching_node.popReachable(key), reaching_node, opts=opts)
         # after conversion to node no longer counted as reachable state
         # abusing key and idx here, whoops
         return new_node, opts['input_actions'][key], extra_attempts
@@ -201,7 +215,7 @@ class RRT_Dirtrel(RRT):
         parent = reaching_node
         for i in range(opts['extend_by']):
             xsim = self.system.simulate(parent.x, opts['input_actions'][key], 1, opts['direction'])
-            new_nodes.append(self.DirtrelNode(xsim, parent))
+            new_nodes.append(self.DirtrelNode(xsim, parent, opts=opts))
             parent = new_nodes[-1]
         return new_nodes, opts['input_actions'][key], extra_attempts
 
@@ -210,7 +224,7 @@ class RRT_Dirtrel(RRT):
         samp = self.sample(opts)
         closest = self.nearest_node(samp)
         new_x, new_u = self.steer(closest, samp, opts)
-        new_node = self.DirtrelNode(new_x, closest)
+        new_node = self.DirtrelNode(new_x, closest, opts=opts)
         return new_node, new_u
 
     def extendMultiTimeStep(self, opts):
@@ -218,14 +232,14 @@ class RRT_Dirtrel(RRT):
         samp = self.sample(opts)
         closest = self.nearest_node(samp)
         extension, new_u = self.steerMultiTimeStep(closest, samp, opts)
-        new_nodes = [self.DirtrelNode(extension[0], closest)]
+        new_nodes = [self.DirtrelNode(extension[0], closest, opts=opts)]
         for i in range(1, opts['extend_by']):
-            new_nodes.append(self.DirtrelNode(extension[i], new_nodes[-1]))
+            new_nodes.append(self.DirtrelNode(extension[i], new_nodes[-1], opts=opts))
         return new_nodes, new_u
 
     def ellipseTreeExpansion(self, opts):
         if opts['direction'] == 'forward':
-            self.start = self.DirtrelNode(self.start) # overwrite self.start
+            self.start = self.DirtrelNode(self.start, opts=opts) # overwrite self.start
             self.node_list = [self.start]
             self.start.setEi(opts['E0'])
             self.start.setHi(np.zeros((opts['nx'], opts['nw'])))
@@ -234,7 +248,7 @@ class RRT_Dirtrel(RRT):
             # switch start and goal
             # to grow the tree bacwards list the end point as the start
             self.goal = np.copy(self.start)
-            self.starts = [self.DirtrelNode(x) for x in self.goals]
+            self.starts = [self.DirtrelNode(x, opts=opts) for x in self.goals]
             self.node_list = self.starts.copy()
             # self.starts are the goals here, growing backwards, apologies aha
             for i in range(len(self.starts)):
@@ -287,6 +301,7 @@ class RRT_Dirtrel(RRT):
             if valid_propogation:
                 self.node_list.extend(new_nodes)
                 for new_node in new_nodes:
+                    if opts['track_children']: new_node.parent.addChild(new_node)
                     new_node.calcReachableMultiTimeStep(self.system, opts)
                     new_dist = self.dist_to_goal(new_node.x[:2])
                     if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node
@@ -351,14 +366,15 @@ class RRT_Dirtrel(RRT):
         # basic way to draw all ellipses with backwards RRT must:
         # find all valid start nodes and for each start node:
         # reprogate from that start node and draw ellipses
+        if not opts['track_children']:
+            raise RuntimeError('Enable track_children')
         if opts['direction'] == 'backward':
-            startnodes = (n for n in self.node_list if n.children==0)
+            startnodes = (n for n in self.node_list if len(n.children)==0)
             for startnode in startnodes:
                 valid_propagation = self.repropagateEllipses(startnode, opts)
                 assert valid_propagation, 'BUG'
                 path = self.getPath(startnode, reverse=False)
-                r, g, b = np.random.rand(3, 1)
-                self.drawEllipsoids(path, color=(r[0], g[0], b[0]))
+                self.drawEllipsoids(path, color=pickRandomColor())
         elif opts['direction'] == 'forward':
             raise NotImplementedError('Not implemented yet for forward RRT')
 

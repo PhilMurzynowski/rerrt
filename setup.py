@@ -22,6 +22,19 @@ def getRotationMtx(angle_deg):
     R = np.array(((c, -s), (s, c)))
     return R
 
+def pickRandomColor(threshold=0.01, individual=False):
+    # initalized to black if threshold=0
+    color = np.zeros(3)
+    val = np.Inf
+    if individual:
+        while val < threshold or val > 1-threshold:
+            color = np.random.rand(3)
+            val = max(color)
+    else:
+        while val < threshold or val > 3-threshold:
+            color = np.random.rand(3)
+            val = sum(color)
+    return color
 
 class Scene:
 
@@ -75,9 +88,6 @@ class MySystem():
             state[2] + self.dir*self.dt*(state[3]*np.tan(state[4] + uncertainty[0])),
             state[3] + self.dir*self.dt*(inputs[0]),
             state[4] + self.dir*self.dt*(inputs[1] + uncertainty[1])])
-        # may need to something about differentialibity and mod eventually
-        #if x_next[2] > 2*np.pi or x_next[2] < 2*np.pi:
-        #    x_next[2] = x_next[2]%(2*np.pi)
         return x_next
 
     def nextState(self, state, inputs):
