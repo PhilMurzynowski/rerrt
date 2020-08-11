@@ -15,7 +15,7 @@ import matplotlib.patches as patches
 from rrt import RRT
 from shapes import Rectangle, Ellipse
 from collision import CollisionDetection
-from setup import printProgressBar, Scene, MySystem, pickRandomColor
+from setup import printProgressBar, Scene, MySystem, pickRandomColor, isPosDef, isSymmetric
 
 
 
@@ -48,14 +48,9 @@ class RRT_Dirtrel(RRT):
             # take first 2 dimensions and project
             A = np.array([[1, 0, 0, 0, 0], [0, 1, 0, 0, 0]])
             EEw = np.linalg.pinv(A@EE)
+            # last inversion below is to keep it in the xE^-1x < 1 format
             ellipse_projection = np.linalg.inv(EEw.T@EEw)
             self.ellipse = Ellipse(self.x[:2], ellipse_projection)
-
-            #EE = scipy.linalg.sqrtm(self.E)
-            #A = np.diag((1, 1, 0, 0, 0))
-            #EEw = np.linalg.pinv(A@EE)[:2, :2]
-            #ellipse_projection = np.linalg.inv(EEw.T@EEw)
-            #self.ellipse = Ellipse(self.x[:2], ellipse_projection)
 
         def setEi(self, Ei):
             self.E = Ei
@@ -84,17 +79,27 @@ class RRT_Dirtrel(RRT):
 
         def propogateEllipse(self, D, nextNode):
             abk = self.A-self.B@self.K
-            En = abk@self.E@abk.T
+            #En = abk@self.E@abk.T
+            En = (self.A-self.B@self.K)@self.E@(self.A-self.B@self.K)
             En += abk@self.H@self.G.T + self.G@self.H.T@abk.T
             En += self.G@D@self.G.T
             Hn = abk@self.H + self.G@D
-
+            #print(f'Hn: {Hn}')
+            posdef = isPosDef(En)
+            symmetric = isSymmetric(En)
+            if not posdef or not symmetric:
+                if not posdef:
+                    print('Not Positive Definite')
+                    print(np.linalg.eigvals(En))
+                if not symmetric:
+                    print('Not Symmetric')
+                print(En)
+                #raise RuntimeError('Propogation Error')
             # debug ellipses blowingg up
             #if En[0, 0] > 100 or En[1, 1] > 100:
             #    print(f'self.E:\n {self.E}')
             #    print(f'En:\n {En}')
             #    import pdb; pdb.set_trace()
-
             nextNode.setHi(Hn)
             nextNode.setEi(En)
 
@@ -129,9 +134,9 @@ class RRT_Dirtrel(RRT):
             if new_figure:
                 print('new figure')
                 plt.figure()
-            for key, reach in self.reachable.items():
-                # using plot to get lines
-                plt.plot([self.x[0], reach[0]], [self.x[1], reach[1]], color=color)
+            #for key, reach in self.reachable.items():
+            #    # using plot to get lines
+            #    plt.plot([self.x[0], reach[0]], [self.x[1], reach[1]], color=color)
             #reach_xs = [reach[0] for key, reach in self.reachable.items()]
             #reach_ys = [reach[1] for key, reach in self.reachable.items()]
             #plt.scatter(reach_xs, reach_ys)

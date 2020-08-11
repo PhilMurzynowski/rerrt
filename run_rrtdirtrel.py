@@ -86,8 +86,8 @@ run_options = {
     'nx':               sys_opts['nx'],                 # :int:                         dim of state
     'nu':               sys_opts['nu'],                 # :int:                         dim of input
     'nw':               sys_opts['nw'],                 # :int:                         dim of uncertainty
-    'D':                0.0001*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
-    'E0':               0.01*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
+    'D':                0.5*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
+    'E0':               0.5*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
     'Ql':               np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           use if robust cost from DIRTREL paper added
     'Rl':               np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           see above
     'QlN':              np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           see above
@@ -105,49 +105,54 @@ tree.draw_tree(color='blue')
 #tree.draw_path(final_path, color='red')
 # hlfmtxpts drawing currently is slow
 #tree.drawEllipsoids(final_path, hlfmtxpts=False, fraction=1.00)
-#tree.drawEllipsoidTree(run_options)
+tree.drawEllipsoidTree(run_options)
 
 # cleanup
 # ellipse debugging
 
 def traceChildren(node, genleft, color, plotted):
-    node.ellipse.convertFromMatrix()
+    #node.ellipse.convertFromMatrix()
     node.plotNode(new_figure=False, color=color)
     plotted.add(node)
     print(f'gen: {genleft}')
-    print(f'color: {color}')
-    # inefficient but ok
     print(f'x, h, w:\n {node.x, node.ellipse.h, node.ellipse.w}')
-    #print(f'n.ellipse.mtx:\n {n.ellipse.mtx}')
+    #print(f'node.ellipse.mtx:\n {node.ellipse.mtx}')
     print(f'node.E:\n {node.E}')
-    #print(f'prevx?: {tree.node_list[i+1].x}')
-    #print(f'prevE?: {tree.node_list[i+1].E}')
     if genleft > 0:
-        #new_color = (color[0]+0.01, color[1]+0.01, color[2]+0.01)
-        new_color = pickRandomColor()
+        new_color = (color[0]+0.03, color[1]+0.03, color[2]+0.03)
+        print(f'{len(node.children)} children: \n {[child.x for child in node.children]}')
+        # follow path of larger child
+        largest_area = 0
+        largest_child = None
         for child in node.children:
-            traceChildren(child, genleft-1, new_color, plotted)
+            area = child.ellipse.area()
+            if area > largest_area:
+                largest_area = area
+                largest_child = child
+        if largest_child is not None:
+            print(f'Control input of child: {largest_child.u}')
+            print(f'Child G: {largest_child.G}')
+            traceChildren(largest_child, genleft-1, new_color, plotted)
 
-
-def debugEllipses():
-    checkmax = 1
-    checked = 0
+def debugLargestEllipses():
     plotted = set()
-    sizethreshold = 4
-    genmax = 20
+    genmax = 30
+    largest_area = 0
+    largest_ellipse = None
     for n in tree.node_list:
         if n.ellipse is None or n in plotted:
             continue
-        n.ellipse.convertFromMatrix()
-        if n.ellipse.h > sizethreshold or n.ellipse.w > sizethreshold:
-            #traceChildren(n, genmax, color=pickRandomColor(threshold=0.21, individual=True), plotted=plotted)
-            traceChildren(n, genmax, color=pickRandomColor(), plotted=plotted)
-            checked+=1
-        if checked >= checkmax:
-            break
-    print(f'checked: {checked}')
+        else:
+            n.ellipse.convertFromMatrix()
+            area = n.ellipse.area()
+            if area > largest_area:
+                largest_area = area
+                largest_ellipse = n
+    traceChildren(largest_ellipse, genmax, color=(0, 0, 0), plotted=plotted)
 
-debugEllipses()
+tree.draw_scene(size=(15, 15))
+tree.draw_tree(color='blue')
+debugLargestEllipses()
 print('Finished')
 plt.show()
 

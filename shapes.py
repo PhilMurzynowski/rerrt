@@ -120,21 +120,27 @@ class Ellipse():
         # generalize to n dim
         if mtx is None:
             mtx = self.mtx
-        a = self.mtx[0, 0]
-        b = self.mtx[0, 1]
-        assert np.isclose(b, self.mtx[1, 0])
-        c = self.mtx[1, 1]
-        e1 = (a+c)/2 + np.sqrt(((a-c)/2)**2+b**2)
-        e2 = (a+c)/2 - np.sqrt(((a-c)/2)**2+b**2)
-        if b == 0 and a >= c:
-            theta = 0
-        elif b == 0 and a < c:
-            theta = np.pi/2
-        else:
-            theta = np.arctan2(e1 - a, b)
-        self.w = 2*np.sqrt(e1)
-        self.h = 2*np.sqrt(e2)
-        self.angle = np.degrees(theta)
+        e, v, = np.linalg.eig(np.linalg.inv(mtx))
+        self.w = 2/np.sqrt(e[0])
+        self.h = 2/np.sqrt(e[1])
+        self.angle = np.degrees(np.arctan2(v[1][0], v[0][0]))
+        #if mtx is None:
+        #    mtx = self.mtx
+        #a = self.mtx[0, 0]
+        #b = self.mtx[0, 1]
+        #assert np.isclose(b, self.mtx[1, 0])
+        #c = self.mtx[1, 1]
+        #e1 = (a+c)/2 + np.sqrt(((a-c)/2)**2+b**2)
+        #e2 = (a+c)/2 - np.sqrt(((a-c)/2)**2+b**2)
+        #if b == 0 and a >= c:
+        #    theta = 0
+        #elif b == 0 and a < c:
+        #    theta = np.pi/2
+        #else:
+        #    theta = np.arctan2(e1 - a, b)
+        #self.w = 2*np.sqrt(e1)
+        #self.h = 2*np.sqrt(e2)
+        #self.angle = np.degrees(theta)
 
 
     def convertToMatrix(self, angle=None, w=None, h=None):
@@ -176,6 +182,8 @@ class Ellipse():
             #return self.c + B@dir2/(np.sqrt(dir2.T@self.mtx@dir2))
             #return self.c + dir2*np.linalg.norm(B@dir2, axis=0)
 
+    def area(self):
+        return np.pi*self.w/2*self.h/2
 
     def volume(self):
         pass
