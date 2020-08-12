@@ -213,6 +213,7 @@ class RRT_Dirtrel(RRT):
         # remove reachable state, inefficient because recalculating here
         # after conversion to node no longer counted as reachable state
         # abusing key and idx here, whoops
+        # not sure if using popReachable here could lead to bugs, shouldnt
         reaching_node.popReachable(key)
         parent = reaching_node
         for i in range(opts['extend_by']):
@@ -309,9 +310,10 @@ class RRT_Dirtrel(RRT):
                     if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node
             printProgressBar('Iterations complete', iter_step, opts['max_iter'])
             printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)
-        # repoprogate from best start node for accurate graphing
+        # repoprogate from best start node for accurate graphing of final path
         assert best_start_node is not None, 'Did not find good node to start from'
         final_propogation_valid = self.repropagateEllipses(best_start_node, opts)
+        # below assertion triggered when best start node is node from mid-extension, hlfmtx pts allowed bad ellipses
         assert final_propogation_valid, 'Collision checking likely not thorough enough'
 
     def repropagateEllipses(self, startnode, opts):

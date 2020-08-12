@@ -46,7 +46,7 @@ rects.append(Rectangle([7, 4], 2.5, 1.5, angle=30.0))
 scene = Scene(start, goal, region, rects)
 
 sys_opts = {
-    'dt': 0.05,
+    'dt': 0.1,
     'nx': 5,
     'nu': 2,
     'nw': 2
@@ -72,7 +72,7 @@ tree = RRT_Dirtrel(start_state, goal_states, sys, scene, collision_function)
 # run RRT_Dirtrel
 run_options = {
     'epsilon':          1,                              # :float:                       min dist to goal
-    'max_iter':         50,                            # :int:                         iterations
+    'max_iter':         100,                            # :int:                         iterations
     'plot_freq':        None,                           # :int:                         plot tree expansion freq. (num iterations), Update
     'plot_size':        (10, 10),                       # :(int, int):                  plot size
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
@@ -82,7 +82,7 @@ run_options = {
     'input_max':        (u0max, u1max),                 # :(float,): (dim(input) x 1)   if input type random, max magnitude of each input
     'numinput_samples': numinput_samples,               # :int:                         if input_type random, num random samples, otherwise num actions
     'input_actions':    input_actions,                  # :list(inputs):                if input_type deterministic, possible inputs
-    'extend_by':        5,                             # :int:                         num timesteps to simulate in steer function with each extension
+    'extend_by':        1,                             # :int:                         num timesteps to simulate in steer function with each extension
     'nx':               sys_opts['nx'],                 # :int:                         dim of state
     'nu':               sys_opts['nu'],                 # :int:                         dim of input
     'nw':               sys_opts['nw'],                 # :int:                         dim of uncertainty
@@ -125,7 +125,7 @@ def traceChildren(node, genleft, color, plotted):
         largest_area = 0
         largest_child = None
         for child in node.children:
-            area = child.ellipse.area()
+            area = child.ellipse.getArea()
             if area > largest_area:
                 largest_area = area
                 largest_child = child
@@ -134,9 +134,10 @@ def traceChildren(node, genleft, color, plotted):
             print(f'Child G: {largest_child.G}')
             traceChildren(largest_child, genleft-1, new_color, plotted)
 
-def findStartNodeLargestEllipse(tree, opts):
+def findNodeLargestEllipse(tree, opts):
     # finds the startnode that ends up having the largest ellipses
     largest_area = 0
+    largestnode = None
     corresponding_startnode = None
     if not opts['track_children']:
         raise RuntimeError('Enable track_children')
@@ -152,15 +153,31 @@ def findStartNodeLargestEllipse(tree, opts):
                 area = node.ellipse.getArea()
                 if area > largest_area:
                     largest_area = area
+                    largestnode = node
                     corresponding_startnode = startnode
     elif opts['direction'] == 'forward':
         raise NotImplementedError('Not implemented yet for forward RRT')
-    return corresponding_startnode
+    return corresponding_startnode, largestnode
 
 def debugLargestEllipse(tree, opts):
-    startnode = findStartNodeLargestEllipse(tree, opts)
+    generations = 3
+    startnode, largestnode = findNodeLargestEllipse(tree, opts)
+    assert tree.repropagateEllipses(startnode, opts)
     path = tree.getPath(startnode, reverse=False)
     tree.drawEllipsoids(path)
+    #snippet = path[:min(generations, len(path))]
+    snippet = path[:min(generations, path.index(largestnode)+1)]
+    for node in snippet:
+        if node == largestnode:
+            plt.scatter(node.x[0], node.x[1], color='red')
+        print(f'x, h, w:\n {node.x, node.ellipse.h, node.ellipse.w}')
+        print(f'node.E:\n {node.E}')
+        print(f'A:\n {node.A}')
+        print(f'B:\n {node.B}')
+        print(f'K:\n {node.K}')
+        print(f'BK:\n {node.B@node.K}')
+        print(f'A-BK: {node.A-node.B@node.K}')
+        #print(f'u:\n {node.u}')
 
 tree.draw_scene(size=(15, 15))
 tree.draw_tree(color='blue')
