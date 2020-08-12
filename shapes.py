@@ -113,6 +113,7 @@ class Ellipse():
         self.c = center
         # self.c3D = np.append(center, [[0]], axis=0)
         self.hlfmtxpts = None
+        self.area = None
 
 
     def convertFromMatrix(self, mtx=None):
@@ -121,8 +122,12 @@ class Ellipse():
         if mtx is None:
             mtx = self.mtx
         e, v, = np.linalg.eig(np.linalg.inv(mtx))
+        # this is concerning that I have to do this
+        # again, numerical error
+        e, v = np.real(e), np.real(v)
         self.w = 2/np.sqrt(e[0])
         self.h = 2/np.sqrt(e[1])
+        #print((v[1][0], v[0][0]))
         self.angle = np.degrees(np.arctan2(v[1][0], v[0][0]))
         #if mtx is None:
         #    mtx = self.mtx
@@ -182,8 +187,10 @@ class Ellipse():
             #return self.c + B@dir2/(np.sqrt(dir2.T@self.mtx@dir2))
             #return self.c + dir2*np.linalg.norm(B@dir2, axis=0)
 
-    def area(self):
-        return np.pi*self.w/2*self.h/2
+    def getArea(self):
+        if self.area is None:
+            self.area = np.pi*self.w/2*self.h/2
+        return self.area
 
     def volume(self):
         pass

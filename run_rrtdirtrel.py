@@ -46,7 +46,7 @@ rects.append(Rectangle([7, 4], 2.5, 1.5, angle=30.0))
 scene = Scene(start, goal, region, rects)
 
 sys_opts = {
-    'dt': 0.02,
+    'dt': 0.05,
     'nx': 5,
     'nu': 2,
     'nw': 2
@@ -82,12 +82,12 @@ run_options = {
     'input_max':        (u0max, u1max),                 # :(float,): (dim(input) x 1)   if input type random, max magnitude of each input
     'numinput_samples': numinput_samples,               # :int:                         if input_type random, num random samples, otherwise num actions
     'input_actions':    input_actions,                  # :list(inputs):                if input_type deterministic, possible inputs
-    'extend_by':        10,                             # :int:                         num timesteps to simulate in steer function with each extension
+    'extend_by':        5,                             # :int:                         num timesteps to simulate in steer function with each extension
     'nx':               sys_opts['nx'],                 # :int:                         dim of state
     'nu':               sys_opts['nu'],                 # :int:                         dim of input
     'nw':               sys_opts['nw'],                 # :int:                         dim of uncertainty
-    'D':                0.5*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
-    'E0':               0.5*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
+    'D':                0.01*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
+    'E0':               0.01*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
     'Ql':               np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           use if robust cost from DIRTREL paper added
     'Rl':               np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           see above
     'QlN':              np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           see above
@@ -134,25 +134,37 @@ def traceChildren(node, genleft, color, plotted):
             print(f'Child G: {largest_child.G}')
             traceChildren(largest_child, genleft-1, new_color, plotted)
 
-def debugLargestEllipses():
-    plotted = set()
-    genmax = 30
+def findStartNodeLargestEllipse(tree, opts):
+    # finds the startnode that ends up having the largest ellipses
     largest_area = 0
-    largest_ellipse = None
-    for n in tree.node_list:
-        if n.ellipse is None or n in plotted:
-            continue
-        else:
-            n.ellipse.convertFromMatrix()
-            area = n.ellipse.area()
-            if area > largest_area:
-                largest_area = area
-                largest_ellipse = n
-    traceChildren(largest_ellipse, genmax, color=(0, 0, 0), plotted=plotted)
+    corresponding_startnode = None
+    if not opts['track_children']:
+        raise RuntimeError('Enable track_children')
+    if opts['direction'] == 'backward':
+        startnodes = (n for n in tree.node_list if len(n.children)==0)
+        for startnode in startnodes:
+            valid_propagation = tree.repropagateEllipses(startnode, opts)
+            assert valid_propagation, 'BUG'
+            path = tree.getPath(startnode, reverse=False)
+            for node in path:
+                if node.ellipse is None: continue
+                node.ellipse.convertFromMatrix()
+                area = node.ellipse.getArea()
+                if area > largest_area:
+                    largest_area = area
+                    corresponding_startnode = startnode
+    elif opts['direction'] == 'forward':
+        raise NotImplementedError('Not implemented yet for forward RRT')
+    return corresponding_startnode
+
+def debugLargestEllipse(tree, opts):
+    startnode = findStartNodeLargestEllipse(tree, opts)
+    path = tree.getPath(startnode, reverse=False)
+    tree.drawEllipsoids(path)
 
 tree.draw_scene(size=(15, 15))
 tree.draw_tree(color='blue')
-debugLargestEllipses()
+debugLargestEllipse(tree, run_options)
 print('Finished')
 plt.show()
 

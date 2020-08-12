@@ -15,7 +15,7 @@ import matplotlib.patches as patches
 from rrt import RRT
 from shapes import Rectangle, Ellipse
 from collision import CollisionDetection
-from setup import printProgressBar, Scene, MySystem, pickRandomColor, isPosDef, isSymmetric
+from setup import printProgressBar, Scene, MySystem, pickRandomColor, isPSD, isSymmetric, getNearPSD, getNearPD
 
 
 
@@ -79,22 +79,19 @@ class RRT_Dirtrel(RRT):
 
         def propogateEllipse(self, D, nextNode):
             abk = self.A-self.B@self.K
-            #En = abk@self.E@abk.T
-            En = (self.A-self.B@self.K)@self.E@(self.A-self.B@self.K)
+            #print(f'cond: {np.linalg.cond(abk)}')
+            #e = np.linalg.eigvals(abk)
+            #print(f'e_max: {max(e)} e_min: {min(e)}')
+            En = abk@self.E@abk.T
             En += abk@self.H@self.G.T + self.G@self.H.T@abk.T
             En += self.G@D@self.G.T
             Hn = abk@self.H + self.G@D
-            #print(f'Hn: {Hn}')
-            posdef = isPosDef(En)
-            symmetric = isSymmetric(En)
-            if not posdef or not symmetric:
-                if not posdef:
-                    print('Not Positive Definite')
-                    print(np.linalg.eigvals(En))
-                if not symmetric:
-                    print('Not Symmetric')
-                print(En)
-                #raise RuntimeError('Propogation Error')
+            #print(np.linalg.eigvals(En))
+            if not isPSD(En):
+                #print('not PSD')
+                #print(np.linalg.eigvals(En))
+                #print(f'En:\n {En}')
+                En = getNearPD(En)
             # debug ellipses blowingg up
             #if En[0, 0] > 100 or En[1, 1] > 100:
             #    print(f'self.E:\n {self.E}')
@@ -315,7 +312,7 @@ class RRT_Dirtrel(RRT):
         # repoprogate from best start node for accurate graphing
         assert best_start_node is not None, 'Did not find good node to start from'
         final_propogation_valid = self.repropagateEllipses(best_start_node, opts)
-        assert final_propogation_valid
+        assert final_propogation_valid, 'Collision checking likely not thorough enough'
 
     def repropagateEllipses(self, startnode, opts):
         # currently this method is only valid for backwards RRT
