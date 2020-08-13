@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 
-
 class Rectangle:
 
 
@@ -27,9 +26,7 @@ class Rectangle:
         self.num = len(self.vertices)
         self.w = width
         self.h = height
-
         self.get_polyhedron()
-
 
     def get_lineqns(self, two_points):
         # want ax + by = c from two pts
@@ -39,7 +36,6 @@ class Rectangle:
         x2, y2 = two_points[1]
         return y1-y2, x2-x1, (x1-x2)*-y1 - (y2-y1)*x1
 
-
     def get_Ab(self, adj_pairs):
         self.A = np.zeros((4, 2))
         self.b = np.zeros((4, 1))
@@ -48,8 +44,6 @@ class Rectangle:
         self.A = -self.A
         self.b = -self.b    # flip sign to match literature for inequality
         # written as inequalities <= the conjunction of half spaces gives obstacle
-        # can add graphing utility to parse and verify functionality
-
 
     def get_c(self):
         # self.c = np.linalg.solve(self.A, self.b)
@@ -65,16 +59,13 @@ class Rectangle:
         self.c[2] = self.v4.reshape(2, 1)
         self.c[3] = self.v1.reshape(2, 1)
 
-
     def get_polyhedron(self):
         adj_pairs = []
         for i in range(self.num-1):
             adj_pairs.append(self.vertices[i:(i+2)])
         adj_pairs.append([self.vertices[-1], self.vertices[0]])
-
         self.get_Ab(adj_pairs)
         self.get_c()
-
 
     def inPoly(self, point):
         # reshape is slow, fix later
@@ -86,25 +77,6 @@ class Rectangle:
         return True
 
 
-    def print_eqns_Ab(self):
-        """To see paste into https://www.desmos.com/calculator
-           rounding as desmos interprets 'e' in terms of exponential
-           not scientific notation"""
-        A = np.around(self.A, 2)
-        b = np.around(self.b, 2)
-        for i in range(np.shape(self.A)[0]):
-            print(f'{A[i][0]}x + {A[i][1]}y <= {b[i][0]}')
-
-
-    def print_eqns_Ac(self):
-        """"Verification, should print same as above, disregarding rounding error"""
-        A = np.around(self.A, 2)
-        c = np.around(self.c, 2)
-        for i in range(np.shape(self.A)[0]):
-            print(f'{A[i][0]}(x - {c[i][0][0]}) + {A[i][1]}(y - {c[i][1][0]}) <= 0')
-
-
-
 class Ellipse():
 
 
@@ -114,7 +86,6 @@ class Ellipse():
         # self.c3D = np.append(center, [[0]], axis=0)
         self.hlfmtxpts = None
         self.area = None
-
 
     def convertFromMatrix(self, mtx=None):
         # designed for 2x2 input
@@ -147,7 +118,6 @@ class Ellipse():
         #self.h = 2*np.sqrt(e2)
         #self.angle = np.degrees(theta)
 
-
     def convertToMatrix(self, angle=None, w=None, h=None):
         # designed for 2x2 input
         # generalize to n dim
@@ -161,7 +131,6 @@ class Ellipse():
         #self.mtx = np.linalg.inv(rotate@np.diag(((2/w)**2, (2/h)**2))@rotate.T)
         self.mtx = np.linalg.inv(rotate@np.diag(((2/w)**2, (2/h)**2))@rotate.T)
 
-
     def getHalfMtxPts(self):
         if self.hlfmtxpts is None:
             mtx_half = scipy.linalg.sqrtm(self.mtx)
@@ -171,7 +140,6 @@ class Ellipse():
                 halfmtx_pts[:, i + mtx_half.shape[0]] = -mtx_half[:, i]
             self.halfmtxpts = halfmtx_pts + self.c
         return self.halfmtxpts
-
 
     def support(self, dir, dim='3D', exact=True):
         # https://juliareach.github.io/LazySets.jl/latest/lib/sets/Ellipsoid/
@@ -195,10 +163,5 @@ class Ellipse():
     def volume(self):
         pass
 
-
-    def drawEllipse(self, color="gray", fill=False):
-        ax = plt.gca()
-        ellip = patches.Ellipse(self.c, self.w, self.h, self.angle, color=color, fill=fill)
-        ax.add_artist(ellip)
 
 

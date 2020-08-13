@@ -18,10 +18,8 @@ class Scene:
         self.obstacles = obstacles
 
     def plotScene(self):
-        ax = plt.gca()
         for r in self.obstacles:
-            rect = patches.Rectangle(r.v1, r.w, r.h, r.angle, color='cyan')
-            ax.add_artist(rect)
+            drawRectangle(r)
         plt.axis([self.region.v1[0]-0.5, self.region.v4[0]+0.5, self.region.v1[1]-0.5, self.region.v4[1]+0.5])
         plt.plot(self.start[0], self.start[1], "xr", markersize=10)
         plt.plot(self.goal[0], self.goal[1], "xb", markersize=10)
@@ -32,6 +30,16 @@ class Scene:
 def drawScene(scene, size=(5, 5)):
     plt.figure(figsize=size)
     scene.plotScene()
+
+def drawRectangle(rectangle, color='cyan', fill=True):
+    ax = plt.gca()
+    rect = patches.Rectangle(rectangle.v1, rectangle.w, rectangle.h, rectangle.angle, color='cyan')
+    ax.add_artist(rect)
+
+def drawEllipsoid(ellipse, color="gray", fill=False):
+    ax = plt.gca()
+    ellip = patches.Ellipse(ellipse.c, ellipse.w, ellipse.h, ellipse.angle, color=color, fill=fill)
+    ax.add_artist(ellip)
 
 def plotNode(node, new_figure=False, color=None):
     # debug tool
@@ -45,7 +53,7 @@ def plotNode(node, new_figure=False, color=None):
     #reach_ys = [reach[1] for key, reach in node.reachable.items()]
     #plt.scatter(reach_xs, reach_ys)
     plt.scatter(node.x[0], node.x[1], color=color)
-    node.ellipse.drawEllipse(color=color)
+    drawEllipsoid(node.ellipse, color=color)
     if new_figure:
         plt.show()
 
@@ -76,7 +84,7 @@ def drawEllipsoids(nodes, hlfmtxpts=False, color='gray', fraction=1.00):
                 # if a goalstate was never propogated from will not have an ellipse set
                 continue
             n.ellipse.convertFromMatrix()
-            n.ellipse.drawEllipse(color=color)
+            drawEllipsoid(n.ellipse, color=color)
             if hlfmtxpts:
                 halfmtx_pts = n.ellipse.getHalfMtxPts()
                 plt.scatter(halfmtx_pts[0, :], halfmtx_pts[1, :])

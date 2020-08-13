@@ -1,5 +1,5 @@
 """
-Run RRT Dirtrel
+Run RERRT
 """
 
 # python libraries

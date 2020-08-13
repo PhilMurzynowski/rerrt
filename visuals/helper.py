@@ -18,3 +18,20 @@ def pickRandomColor(threshold=0.01, individual=False):
             color = np.random.rand(3)
             val = sum(color)
     return color
+
+def print_eqns_Ab(rectangle):
+    """To see paste into https://www.desmos.com/calculator
+       rounding as desmos interprets 'e' in terms of exponential
+       not scientific notation"""
+    A = np.around(rectangle.A, 2)
+    b = np.around(rectangle.b, 2)
+    for i in range(np.shape(rectangle.A)[0]):
+        print(f'{A[i][0]}x + {A[i][1]}y <= {b[i][0]}')
+
+
+def print_eqns_Ac(rectangle):
+    """"Verification, should print same as above, disregarding rounding error"""
+    A = np.around(rectangle.A, 2)
+    c = np.around(rectangle.c, 2)
+    for i in range(np.shape(rectangle.A)[0]):
+        print(f'{A[i][0]}(x - {c[i][0][0]}) + {A[i][1]}(y - {c[i][1][0]}) <= 0')
