@@ -70,9 +70,9 @@ class Car(System):
         x_next = np.array([
             state[0] + self.dir*self.dt*(state[3]*np.cos(state[2])),
             state[1] + self.dir*self.dt*(state[3]*np.sin(state[2])),
-            state[2] + self.dir*self.dt*(state[3]*np.tan(state[4] )),#+ uncertainty[0])),
+            state[2] + self.dir*self.dt*(state[3]*np.tan(state[4] + uncertainty[0])),
             state[3] + self.dir*self.dt*(inputs[0]),
-            state[4] + self.dir*self.dt*(inputs[1] )])#+ uncertainty[1])])
+            state[4] + self.dir*self.dt*(inputs[1] + uncertainty[1])])
         return x_next
 
 

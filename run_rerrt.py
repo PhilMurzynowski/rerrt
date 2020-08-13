@@ -88,7 +88,7 @@ run_options = {
     'nx':               sys_opts['nx'],                 # :int:                         dim of state
     'nu':               sys_opts['nu'],                 # :int:                         dim of input
     'nw':               sys_opts['nw'],                 # :int:                         dim of uncertainty
-    'D':                0.1*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
+    'D':                0.0*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
     'E0':               0.1*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
     'Ql':               np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           use if robust cost from DIRTREL paper added
     'Rl':               np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           see above
