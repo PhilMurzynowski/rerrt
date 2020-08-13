@@ -30,6 +30,7 @@ class RRT:
 
 
     def inRegion(self, point):
+        """Check if point is within self.region"""
         return self.region.inPoly(point)
 
 

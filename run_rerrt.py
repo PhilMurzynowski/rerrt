@@ -4,11 +4,6 @@ Run RERRT
 
 # python libraries
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-
-#from pydrake.common.containers import namedview
-#import pydrake.math as mr
 
 # custom classes
 from trees.rrt import RRT
@@ -36,6 +31,7 @@ num_goal_states = 10
 eps = 1e-4
 goal_speed = 1
 # creates a tiny ring of nodes with heading adjusted to be facing inwards 
+# don't have general function as this is rather specific to dynamics
 # (outwards for backward RRT if doing backward integration)
 goal_states = [np.array([goal[0]+eps*np.cos(theta)]+[goal[1]+eps*np.sin(theta)]+[(theta+np.pi)%(2*np.pi), goal_speed, 0]).reshape(5, 1) for theta in np.linspace(-np.pi, np.pi, num_goal_states, endpoint=False)]
 
