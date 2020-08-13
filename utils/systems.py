@@ -76,3 +76,40 @@ class Car(System):
         return x_next
 
 
+class Input():
+
+
+    def __init__(self, dim):
+        self.dim = dim
+        # default configuration
+        self.setLimits(np.ones(dim))
+        self.setType('deterministic')
+        self.determineActions(2*np.ones(dim))
+
+    def setLimits(self, limits):
+        assert limits.size == self.dim
+        self.limits = limits
+
+    def setType(self, input_type):
+        self.type = input_type
+
+    def determineActions(self, resolutions):
+        # pass in resolution for desired actions
+        # higher resolutions will result in more action combinations
+        # e.g. for a 1d input, passing in resolutions=5
+        # will result in 5 different actions between -limit and limit
+        # e.g. for a 2d input, passing in resolutions=[3, 2]
+        # will create 6 different action combinations, again sampling
+        # between -limit and limit for each dimension
+        # limits are described in self.limits
+        assert self.type == 'deterministic', 'fnc only for deterministic type'
+        assert resolutions.size == self.dim
+        num_combinations = int(np.prod(resolutions))
+        self.actions = np.zeros((num_combinations, self.dim, 1))
+        for idx, r in enumerate(resolutions):
+            repeat = int(num_combinations/r)
+            tmp = np.tile(np.linspace(-self.limits[idx], self.limits[idx], r), repeat).reshape(num_combinations, 1)
+            self.actions[:, idx, :] = tmp
+        self.numsamples = num_combinations
+
+

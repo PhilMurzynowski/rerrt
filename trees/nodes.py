@@ -106,11 +106,11 @@ class RERRTNode(RRTNode):
             elif opts['direction'] == 'backward':
                 self.reachable[i] = system.prevState(self.x, action)
 
-    def calcReachableMultiTimeStep(self, system, opts):
+    def calcReachableMultiTimeStep(self, system, inputConfig, opts):
         # not sure yet whether including collision checking here
         # will be effecient or detrimental, depends on 
         # likelihood of being in obstacle vs likelihood of being selected
-        for i, action in enumerate(opts['input_actions']):
+        for i, action in enumerate(inputConfig.actions):
             self.reachable[i] = system.simulate(self.x, action, opts['extend_by'], opts['direction'])
 
     def popReachable(self, idx):
@@ -122,19 +122,4 @@ class RERRTNode(RRTNode):
     def calcCost(self):
         pass
 
-    def plotNode(self, new_figure=False, color=None):
-        # debug tool
-        if new_figure:
-            print('new figure')
-            plt.figure()
-        #for key, reach in self.reachable.items():
-        #    # using plot to get lines
-        #    plt.plot([self.x[0], reach[0]], [self.x[1], reach[1]], color=color)
-        #reach_xs = [reach[0] for key, reach in self.reachable.items()]
-        #reach_ys = [reach[1] for key, reach in self.reachable.items()]
-        #plt.scatter(reach_xs, reach_ys)
-        plt.scatter(self.x[0], self.x[1], color=color)
-        self.ellipse.drawEllipse(color=color)
-        if new_figure:
-            plt.show()
 

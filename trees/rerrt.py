@@ -16,21 +16,22 @@ from trees.nodes import RRTNode, RERRTNode
 from trees.rrt import RRT
 from utils.shapes import Rectangle, Ellipse
 from utils.collision import CollisionDetection
-from utils.general import printProgressBar,  pickRandomColor
-from utils.visual import Scene
 from utils.systems import System
 from utils.math import isPSD, isSymmetric, getNearPSD, getNearPD
+from visuals.helper import printProgressBar,  pickRandomColor
+from visuals.plotting import Scene
 
 class RERRT(RRT):
 
 
-    def __init__(self, start, goals, system, scene, collision_function):
+    def __init__(self, start, goals, system, inputConfig, scene, collision_function):
         self.start = start
         # multiple goals only currently used for backwards RRT
         self.goals = goals
         # set first goal state to default goal
         self.goal = goals[0]
         self.system = system
+        self.input = inputConfig
         self.scene = scene
         self.region = scene.region
         self.obstacles = scene.obstacles
@@ -77,7 +78,7 @@ class RERRT(RRT):
         new_node = RERRTNode(reaching_node.popReachable(key), reaching_node, opts=opts)
         # after conversion to node no longer counted as reachable state
         # abusing key and idx here, whoops
-        return new_node, opts['input_actions'][key], extra_attempts
+        return new_node, self.input.actions[key], extra_attempts
 
     def extendReachableMultiTimeStep(self, opts):
         # performs sampling and returns nearest reachable state
@@ -98,10 +99,10 @@ class RERRT(RRT):
         reaching_node.popReachable(key)
         parent = reaching_node
         for i in range(opts['extend_by']):
-            xsim = self.system.simulate(parent.x, opts['input_actions'][key], 1, opts['direction'])
+            xsim = self.system.simulate(parent.x, self.input.actions[key], 1, opts['direction'])
             new_nodes.append(RERRTNode(xsim, parent, opts=opts))
             parent = new_nodes[-1]
-        return new_nodes, opts['input_actions'][key], extra_attempts
+        return new_nodes, self.input.actions[key], extra_attempts
 
     def extend(self, opts):
         # returns a node and the control input used
@@ -126,7 +127,7 @@ class RERRT(RRT):
             self.start = RERRTNode(self.start, opts=opts) # overwrite self.start
             self.node_list = [self.start]
             self.start.setEi(opts['E0'])
-            self.start.setHi(np.zeros((opts['nx'], opts['nw'])))
+            self.start.setHi(np.zeros((self.system.nx, self.system.nw)))
             self.ellipseTreeForwardExpansion(opts)
         elif opts['direction'] == 'backward':
             # switch start and goal
@@ -136,15 +137,15 @@ class RERRT(RRT):
             self.node_list = self.starts.copy()
             # self.starts are the goals here, growing backwards, apologies aha
             for i in range(len(self.starts)):
-                self.starts[i].setSi(np.zeros((opts['nx'], opts['nx'])))
-                self.starts[i].calcReachableMultiTimeStep(self.system, opts)
+                self.starts[i].setSi(np.zeros((self.system.nx, self.system.nx)))
+                self.starts[i].calcReachableMultiTimeStep(self.system, self.input, opts)
                 #self.starts[i].plotNode(new_figure=True)
             self.ellipseTreeBackwardExpansion(opts)
 
     def ellipseTreeForwardExpansion(self, opts):
         iter_step = 0
         best_dist_to_goal = self.dist_to_goal(self.start.x[0:2])
-        while best_dist_to_goal > opts['epsilon'] and iter_step < opts['max_iter']:
+        while best_dist_to_goal > opts['min_dist'] and iter_step < opts['max_iter']:
             iter_step+=1
             printProgressBar(iter_step, opts['max_iter'])
             new_node, new_u  = self.extend(opts)
@@ -166,7 +167,7 @@ class RERRT(RRT):
         initial_dist = self.dist_to_goal(self.starts[0].x[:2])
         best_dist = initial_dist
         best_start_node = None
-        while best_dist > opts['epsilon'] and iter_step < opts['max_iter']:
+        while best_dist > opts['min_dist'] and iter_step < opts['max_iter']:
             iter_step+=1
             new_nodes, new_u, extra_attempts = self.extendReachableMultiTimeStep(opts)
             iter_step += extra_attempts
@@ -186,7 +187,7 @@ class RERRT(RRT):
                 self.node_list.extend(new_nodes)
                 for new_node in new_nodes:
                     if opts['track_children']: new_node.parent.addChild(new_node)
-                    new_node.calcReachableMultiTimeStep(self.system, opts)
+                    new_node.calcReachableMultiTimeStep(self.system, self.input, opts)
                     new_dist = self.dist_to_goal(new_node.x[:2])
                     if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node
             printProgressBar('Iterations complete', iter_step, opts['max_iter'])
@@ -200,7 +201,7 @@ class RERRT(RRT):
     def repropagateEllipses(self, startnode, opts):
         # currently this method is only valid for backwards RRT
         # avoid creating lists by checking collision immediately after propogating ellipse
-        startnode.setHi(np.zeros((opts['nx'], opts['nw'])))
+        startnode.setHi(np.zeros((self.system.nx, self.system.nw)))
         startnode.setEi(opts['E0'])
         if self.nodeCollision(startnode): return False
         node = startnode
@@ -219,9 +220,9 @@ class RERRT(RRT):
     def calcEllipseGivenPath(self, path, opts):
 
         N = path[-1].n+1
-        path[N-1].setSi(np.zeros((opts['nx'], opts['nx'])))
+        path[N-1].setSi(np.zeros((self.system.nx, self.system.nx)))
         path[0].setEi(opts['E0'])
-        path[0].setHi(np.zeros((opts['nx'], opts['nw'])))
+        path[0].setHi(np.zeros((self.system.nx, self.system.nw)))
 
         for i in range(N-1):
             path[i].getJacobians(self.system)
@@ -231,44 +232,6 @@ class RERRT(RRT):
             path[i].calcKi(opts['R'], path[i+1])
             path[i].propogateEllipse(opts['D'], path[i+1])
 
-    def drawEllipsoids(self, nodes, hlfmtxpts=False, color='gray', fraction=1.00):
-        freq = 1/fraction
-        for i, n in enumerate(nodes):
-            if i%freq==0:
-                if n.ellipse is None:
-                    # if a goalstate was never propogated from will not have an ellipse set
-                    continue
-                n.ellipse.convertFromMatrix()
-                n.ellipse.drawEllipse(color=color)
-                if hlfmtxpts:
-                    halfmtx_pts = n.ellipse.getHalfMtxPts()
-                    plt.scatter(halfmtx_pts[0, :], halfmtx_pts[1, :])
-
-    def drawEllipsoidTree(self, opts):
-        # ellipses at each node currently only keep the last propogated ellipse
-        # otherwise would be extremely memory intensive
-        # so if the path branches only the last propogated value will be kept
-        # basic way to draw all ellipses with backwards RRT must:
-        # find all valid start nodes and for each start node:
-        # reprogate from that start node and draw ellipses
-        if not opts['track_children']:
-            raise RuntimeError('Enable track_children')
-        if opts['direction'] == 'backward':
-            startnodes = (n for n in self.node_list if len(n.children)==0)
-            for startnode in startnodes:
-                valid_propagation = self.repropagateEllipses(startnode, opts)
-                assert valid_propagation, 'BUG'
-                path = self.getPath(startnode, reverse=False)
-                self.drawEllipsoids(path, color=pickRandomColor())
-        elif opts['direction'] == 'forward':
-            raise NotImplementedError('Not implemented yet for forward RRT')
 
 
-    def drawReachable(self, nodes, color='limegreen', fraction=1.00):
-        freq = 1/fraction
-        plotnum = 0
-        for node in nodes:
-            for key, reach in node.reachable.items():
-                plotnum += 1
-                if plotnum%freq==0:
-                    plt.plot([node.x[0], reach[0]], [node.x[1], reach[1]], color=color)
+

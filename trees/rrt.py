@@ -185,19 +185,4 @@ class RRT:
         return self.getPath(final)
 
 
-    def draw_path(self, path, color='blue'):
-        for node in path:
-            if node.parent:
-                plt.plot([node.x[0], node.parent.x[0]], [node.x[1], node.parent.x[1]], color=color)
-
-
-    def draw_tree(self, color='blue'):
-        for node in self.node_list:
-            if node.parent:
-                plt.plot([node.x[0], node.parent.x[0]], [node.x[1], node.parent.x[1]], color=color)
-
-
-    def draw_scene(self, size=(5, 5)):
-        plt.figure(figsize=size)
-        self.scene.plot_scene()
 
