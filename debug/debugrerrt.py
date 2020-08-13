@@ -11,16 +11,19 @@ import matplotlib.patches as patches
 #import pydrake.math as mr
 
 # custom classes
-from rrt import RRT
-from shapes import Rectangle, Ellipse
-from collision import CollisionDetection
-from setup import Scene, MySystem, pickRandomColor
-from rrtdirtrel import RRT_Dirtrel
+from trees.rrt import RRT
+from trees.rerrt import RERRT
+from utils.shapes import Rectangle, Ellipse
+from utils.collision import CollisionDetection
+from utils.systems import System, Car
+from utils.visual import Scene
+from utils.general import pickRandomColor
 
 
 # Initialize start, goal, bounds on area
 start = [12.5, 12.5]
 goal = [0, 0]
+region = Rectangle([-5, -5], 20, 20)
 
 # start_state used for forward expansion as start
 # goal_states used for backward expansion as start
@@ -33,17 +36,16 @@ num_goal_states = 10
 eps = 1e-4
 goal_speed = 1
 goal_states = [np.array([goal[0]+eps*np.cos(theta)]+[goal[1]+eps*np.sin(theta)]+[(theta+np.pi)%(2*np.pi), goal_speed, 0]).reshape(5, 1) for theta in np.linspace(-np.pi, np.pi, num_goal_states, endpoint=False)]
-region = Rectangle([-5, -5], 20, 20)
 
 
 # initialize obstacles
-rects = []
+obstacles = []
 # arguments: rectangle bottom left corner, width, height, angle from horizontal (deg)
-rects.append(Rectangle([7, 11], 3, 1.5, angle=120.0))
-rects.append(Rectangle([7, 4], 2.5, 1.5, angle=30.0))
+obstacles.append(Rectangle([7, 11], 3, 1.5, angle=120.0))
+obstacles.append(Rectangle([7, 4], 2.5, 1.5, angle=30.0))
 
 # Scene describes the start, goal, obstacles, mostly for plotting
-scene = Scene(start, goal, region, rects)
+scene = Scene(start, goal, region, obstacles)
 
 sys_opts = {
     'dt': 0.1,
@@ -51,7 +53,7 @@ sys_opts = {
     'nu': 2,
     'nw': 2
     }
-sys = MySystem(sys_opts)
+sys = Car(sys_opts)
 
 # select input type
 # when cleaning up, convert to class for easier setup
@@ -67,7 +69,7 @@ col = CollisionDetection()
 collision_function = col.selectCollisionChecker('erHalfMtxPts')
 
 # initialize RRT_Dirtrel
-tree = RRT_Dirtrel(start_state, goal_states, sys, scene, collision_function)
+tree = RERRT(start_state, goal_states, sys, scene, collision_function)
 
 # run RRT_Dirtrel
 run_options = {

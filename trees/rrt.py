@@ -4,21 +4,10 @@ Base RRT Implementation
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+from .nodes import RRTNode
 
 
 class RRT:
-
-
-    class Node:
-
-        def __init__(self, x, parent=None):
-            self.x = x.reshape(x.size, 1)
-            self.parent = parent
-            if self.parent is not None:
-                self.n = self.parent.n+1    # time sample
-            else:
-                self.n = 0
 
 
     def __init__(self, start, goal, system, scene):
@@ -162,7 +151,7 @@ class RRT:
             samp = self.sample(options)
             closest = self.nearest_node(samp)
             x_hat, _ = self.steer(closest, samp, options)
-            n_min = self.Node(x_hat, closest)
+            n_min = RRTNode(x_hat, closest)
 
             if not self.inObstacle(x_hat[0:2]):
                 # n_min only added to tree if not in obstacle

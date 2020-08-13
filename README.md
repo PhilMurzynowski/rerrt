@@ -1,6 +1,10 @@
-A robust approach to sampling based planning methods.
+Robust Ellipsoid RRT, a robust approach to sampling based planning methods.
 
-If you have drake installed locally, run with
+If you have drake installed locally, add this directory to your python path 
+```shell
+user@userpc:~$ export PYTHONPATH="${PYTHONPATH}:pathtorerrt/rerrt"
+```
+and run with
 ```python
-python3 run_rrtdirtrel.py
+python3 run_rerrt.py
 ```
