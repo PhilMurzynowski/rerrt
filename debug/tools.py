@@ -1,4 +1,5 @@
 from visuals.plotting import plotNode, drawEllipsoids
+import matplotlib.pyplot as plt
 
 def traceChildren(node, genleft, color, plotted):
     #node.ellipse.convertFromMatrix()

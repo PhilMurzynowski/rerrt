@@ -19,7 +19,7 @@ from utils.systems import Input, System, Car
 from visuals.helper import pickRandomColor
 from visuals.plotting import (Scene, drawScene, drawTree, drawReachable,
                               drawEllipsoids, drawEllipsoidTree)
-
+from debug.tools import *
 
 # Initialize start, goal, bounds on area
 start = [12.5, 12.5]
@@ -50,7 +50,7 @@ scene = Scene(start, goal, region, obstacles)
 
 # could automate system config
 sys_opts = {
-    'dt': 0.02,
+    'dt': 0.05,
     'nx': 5,
     'nu': 2,
     'nw': 2
@@ -116,17 +116,16 @@ drawTree(tree, color='blue')
 #drawEllipsoids(final_path, hlfmtxpts=False, fraction=1.00)
 drawEllipsoidTree(tree, run_options)
 print('Finished\n')
-plt.show()
 
 
 # cleanup
 # ellipse debugging
 
-
-tree.draw_scene(size=(15, 15))
-tree.draw_tree(color='blue')
+print('Debugging...')
+drawScene(scene, size=(15, 15))
+drawTree(tree, color='blue')
 debugLargestEllipse(tree, run_options)
-print('Finished')
+print('Finished\n')
 plt.show()
 
 
