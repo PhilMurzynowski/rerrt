@@ -84,15 +84,15 @@ class RRT:
             return closest_node, closest_distance
         return closest_node
 
-    def pickAction(self, sel, opts):
-        # sel, select only useful for deterministic action types
-        if opts['input_type'] == 'random':
-            u = np.zeros(opts['nu'], 1)
-            for i in range(opts['nu']):
-                u[i] = np.random.uniform(-opts['input_max'][i], opts['input_max'][i])
-        elif opts['input_type'] == 'deterministic':
-            u = opts['input_actions'][sel]
-        return u
+   # def pickAction(self, sel, opts):
+   #     # sel, select only useful for deterministic action types
+   #     if opts['input_type'] == 'random':
+   #         u = np.zeros(opts['nu'], 1)
+   #         for i in range(opts['nu']):
+   #             u[i] = np.random.uniform(-opts['input_max'][i], opts['input_max'][i])
+   #     elif opts['input_type'] == 'deterministic':
+   #         u = opts['input_actions'][sel]
+   #     return u
 
     def steer(self, from_node, to_location, opts):
         """samples multiple controls and checks for best extension
