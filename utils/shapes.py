@@ -12,17 +12,23 @@ class Rectangle:
     """
     Class used to describe a rectangle in 2D. In the context of RERRT, used to
     obtain linear equations for obstacle and collision checking.
-
+    attributes:
+        angle       angle in degrees rectangle is rotated by, rotated around bottomleft_corner
+        vertices    4 vertices of the rectangle, first is bottomleft_corner, proceeding counterclockwise
+        w           width of rectangle
+        h           height of rectangle
+    Note: remaining attributes redundant, can be cleaned
     Note: Can be updated to inherit from a more general ConvexPolygon Class in n-dim
     """
 
 
     def __init__(self, bottomleft_corner, width, height, angle=0):
-        """cjt is the center of rectangle, thought of as translation.
-           may be more efficient to incorporate time into object"""
+        """Given bottomleft_corner width, height and angle creates rectangle object by calculating four
+        vertices and corresponding linear equations.
+        Note: remove redundant attributes
+        """
         self.angle = angle
         self.angle_rad = angle*np.pi/180
-        # bottomleft_corner is defined with regards to angle=0 and rotates appropriately
         self.v1 = np.array(bottomleft_corner).reshape(2, 1)
         self.v2 = self.v1 + np.array([width*np.cos(self.angle_rad), width*np.sin(self.angle_rad)]).reshape(2, 1)
         self.v3 = self.v1 + np.array([-height*np.sin(self.angle_rad), height*np.cos(self.angle_rad)]).reshape(2, 1)
@@ -34,14 +40,18 @@ class Rectangle:
         self.getPolyhedron()
 
     def getLinearEqns(self, two_points):
-        # want ax + by = c from two pts
-        # returns a, b, c
-        # (y1-y2) * x + (x2-x1) * y + (x1-x2)*y1 + (y2-y1)*x1 = 0
+        """Given two points obtains linear equation which can be used to describe them.
+        Can describe two poits with ax + by = c, returns a, b, c.
+        Uses (y1-y2) * x + (x2-x1) * y + (x1-x2)*y1 + (y2-y1)*x1 = 0
+        """
         x1, y1 = two_points[0]
         x2, y2 = two_points[1]
         return y1-y2, x2-x1, (x1-x2)*-y1 - (y2-y1)*x1
 
     def getAb(self, adj_pairs):
+        """Given list of pairs of adjacent points, determines A and b to describe rectangle.
+        From Ax = b where A is a matrix, x is a vector, b is a vector.
+        """
         self.A = np.zeros((4, 2))
         self.b = np.zeros((4, 1))
         for i, pair in enumerate(adj_pairs):
@@ -51,13 +61,9 @@ class Rectangle:
         # written as inequalities <= the conjunction of half spaces gives obstacle
 
     def getC(self):
-        # self.c = np.linalg.solve(self.A, self.b)
-        # self.c = np.linalg.pinv(self.A).dot(self.b)
-        # c_ijt is a point nominally (i.e. cj = 0) on the ith constraint at time step t
-        # self.c = np.zeros((4, 2, 1))    # formatting useful to get column vectors later
-        # for i in range(4):
-        #     # solve for other coordinate if one is 0, warning may divide by 0 if origin
-        #     self.c[i][0] = self.b[i]/self.A[i][0]
+        """Used to describe a polyhedron with linear inequalites in terms of its vertices.
+        A matter of moving around terms. Equivalent to using Ax=b.
+        """
         self.c = np.zeros((4, 2, 1))
         self.c[0] = self.v1.reshape(2, 1)
         self.c[1] = self.v4.reshape(2, 1)
@@ -65,6 +71,9 @@ class Rectangle:
         self.c[3] = self.v1.reshape(2, 1)
 
     def getPolyhedron(self):
+        """Using the vertices that have been calculated for the polyhedron,
+        determines the linear inequalities which can also be used to describe it.
+        """
         adj_pairs = []
         for i in range(self.num-1):
             adj_pairs.append(self.vertices[i:(i+2)])
@@ -73,28 +82,43 @@ class Rectangle:
         self.getC()
 
     def inPoly(self, point):
-        # reshape is slow, fix later
-        #print(self.b)
+        """Check whether a point is within this object.
+        Note: reshape should simply create a view object, not copy, confirm
+        """
         halfspaces = self.A.dot(point).reshape(4, 1) > self.b
-        #halfspaces = self.A.dot(point) > self.b
         if np.any(halfspaces):
             return False
         return True
 
 
 class Ellipse():
+    """
+    Note: Can be updated to inherit from a more general Ellipsoid class in n-dim
+    Class used to describe an ellipse in 2D. In the context of RERRT, used for
+    uncertainty visualization and collision checking.
+    attributes:
+        mtx         :nparray: (2x2)     matrix describing the ellipse
+        c           :nparray: (2x1)     centerpoint of the ellipse
+        w           :float:             width
+        h           :float:             height
+        angle       :float:             angle ellipse rotated from horizontal, degrees
+        hlfmtxpts   :nparray: (2x4)     4 pts on the edge of ellipse, obtained by taking c+-col(mtx^(1/2))
+        area        :float:             area of the ellipse
+    """
 
 
     def __init__(self, center, matrix):
         self.mtx = matrix
         self.c = center
-        # self.c3D = np.append(center, [[0]], axis=0)
         self.hlfmtxpts = None
         self.area = None
 
     def convertFromMatrix(self, mtx=None):
-        # designed for 2x2 input
-        # generalize to n dim
+        """Obtain information from mtx describing ellipse that is necessary for plotting.
+        Including, width, height, angle.
+        Note: generalize to higher dim
+        Note: verify correctness
+        """
         if mtx is None:
             mtx = self.mtx
         e, v, = np.linalg.eig(np.linalg.inv(mtx))
@@ -124,8 +148,11 @@ class Ellipse():
         #self.angle = np.degrees(theta)
 
     def convertToMatrix(self, angle=None, w=None, h=None):
-        # designed for 2x2 input
-        # generalize to n dim
+        """Function to convert angle, width, height into matrix describing desired ellipse.
+        Largely used to verify functionality of convertFromMatrix is it is its inverse operation.
+        Note: generalize to higher dim
+        Note: verify correctness
+        """
         if angle is None:
             angle = self.angle
         if w is None:
@@ -137,6 +164,8 @@ class Ellipse():
         self.mtx = np.linalg.inv(rotate@np.diag(((2/w)**2, (2/h)**2))@rotate.T)
 
     def getHalfMtxPts(self):
+        """Obtain 4 pts on the edge of ellipse, can get by taking c+-col(mtx^(1/2))
+        """
         if self.hlfmtxpts is None:
             mtx_half = scipy.linalg.sqrtm(self.mtx)
             halfmtx_pts = np.zeros((2, 2*mtx_half.shape[0]))
@@ -147,6 +176,9 @@ class Ellipse():
         return self.halfmtxpts
 
     def support(self, dir, dim='3D', exact=True):
+        """Unfinished/buggy support function for GJK algorithm.
+        Currently does not return farthest exactly in desired direction.
+        """
         # https://juliareach.github.io/LazySets.jl/latest/lib/sets/Ellipsoid/
         #B = np.linalg.cholesky(np.linalg.inv(self.mtx))
         dir2 = dir[:2]
@@ -161,12 +193,10 @@ class Ellipse():
             #return self.c + dir2*np.linalg.norm(B@dir2, axis=0)
 
     def getArea(self):
+        """Returns area of ellipse. Would generalize to volume in higher dim."""
         if self.area is None:
             self.area = np.pi*self.w/2*self.h/2
         return self.area
-
-    def volume(self):
-        pass
 
 
 
