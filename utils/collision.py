@@ -1,16 +1,23 @@
 """
-Collision detection class
+Collision detection
 """
 
 
-
 class CollisionDetection():
+    """
+    Class designed to contain selection of collision detection methods.
+    Currently supports:
+        ellipse-rectangle collision halfmtx points heuristic
+    GJK Algorithm for general convex polygons coming shortly..
+    """
 
-    # def __init__(self):
-    #     print(dir(self))
 
     def erHalfMtxPts(self, ellipse, rectangle):
-        # er prefix stands for ellipse rectangle
+        """er prefix stands for ellipse-rectangle
+        Given Ellipse and Rectangle objects, checks if the columns
+        of the square root of the matrix describing the ellipse
+        are within the rectangle.
+        """
         collision = False
         halfmtxpts = ellipse.getHalfMtxPts()
         for i in range(halfmtxpts.shape[1]):
@@ -20,6 +27,8 @@ class CollisionDetection():
         return collision
 
     def selectCollisionChecker(self, name):
-        # can use dir, or such so don't need to maintain dictionary of all methods
+        """Selection tool to return desired collision detection method
+        can update to use dir, or such so don't need to maintain dictionary of all methods
+        """
         if name == 'erHalfMtxPts':
             return self.erHalfMtxPts
