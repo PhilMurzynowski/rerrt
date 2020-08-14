@@ -7,40 +7,73 @@ from pydrake.all import (AutoDiffXd, autoDiffToGradientMatrix, initializeAutoDif
 
 
 class System():
+    """Class used to describe a discrete system for use with RERRT. Provide configuration
+    dt      :float:     timstep to be used in simulation
+    nx      :int:       dimension of state
+    nu      :int:       dimension of input
+    nw      :int:       dimension of uncertainty
+    Can provide dynamics by creating a subclass with required dynamics.
+    Car Class example provided below.
+    """
 
-    def __init__(self, sys_opts):
-        self.dt = sys_opts['dt']
-        self.nx = sys_opts['nx']
-        self.nu = sys_opts['nu']
-        self.nw = sys_opts['nw']
+    def __init__(self, sys_config):
+        self.dt = sys_config['dt']
+        self.nx = sys_config['nx']
+        self.nu = sys_config['nu']
+        self.nw = sys_config['nw']
         self.dir = 1
 
-    def dynamics(self, state, inputs, uncertainty=None):
+    def dynamics(self, x, u, w=None):
+        """Implement in subclass. If w not specified assumed to be 0s.
+        x       :nparray: (nx x 1)          state
+        u       :nparray: (nu x 1)          input
+        w       :nparray: (nw x 1), None    uncertainty
+        """
         raise NotImplementedError('Specify a sublcass with dynamics')
 
-    def nextState(self, state, inputs):
-        # wrapper for forwards integration
+    def nextState(self, x, u, w=None):
+        """Wrapper for forwards integration
+        x       :nparray: (nx x 1)          state
+        u       :nparray: (nu x 1)          input
+        w       :nparray: (nw x 1), None    uncertainty
+        """
         if self.dir == -1:
             self.dir = 1
-        return self.dynamics(state, inputs)
+        return self.dynamics(x, u, w)
 
-    def prevState(self, state, inputs):
-        # backwards integration
+    def prevState(self, x, u, w=None):
+        """Wrapper for backwards integration
+        x       :nparray: (nx x 1)          state
+        u       :nparray: (nu x 1)          input
+        w       :nparray: (nw x 1), None    uncertainty
+        """
         if self.dir == 1:
             self.dir = -1
-        return self.dynamics(state, inputs)
+        return self.dynamics(x, u, w)
 
-    def simulate(self, state, inputs, num_steps, direction):
-        # simulate num_steps with single input
-        x = state
-        for i in range(num_steps):
+    def simulate(self, x_start, u, num_timesteps, direction, w=None):
+        """Simulate system in direction holding input_ for num_timesteps
+        x_start     :nparray: (nx x 1)          starting state
+        u           :nparray: (nu x 1)          input to simulate with (single input, held constant for num_timsteps)
+        n           :int:                       number of timesteps to simulate
+        direction   'forward','backward'        forward or backward simulation
+        w           :nparray: (nw x 1), None    uncertainty
+        """
+        x = x_start
+        for i in range(num_timesteps):
             if direction == 'forward':
-                x = self.nextState(x, inputs)
+                x = self.nextState(x, u)
             elif direction == 'backward':
-                x = self.prevState(x, inputs)
+                x = self.prevState(x, u)
         return x
 
     def getJacobians(self, x, u, w=None):
+        """Calculate linearized matrices (around provided x, u, w).
+        Makes use of drakes autodiff. If w not specified assumed to be 0s.
+        x       :nparray: (nx x 1)      state
+        u       :nparray: (nu x 1)      input
+        w       :nparray: (nw x 1)      uncertainty
+        """
         if w is None:
             w = np.zeros((self.nw, 1))
         # format for autodiff
@@ -51,7 +84,7 @@ class System():
         u_autodiff = xuw_autodiff[self.nx:self.nx+self.nu, :]
         w_autodiff = xuw_autodiff[self.nx+self.nu:, :]
         x_next_autodiff = self.dynamics(x_autodiff, u_autodiff, w_autodiff)
-        # nice function organize for us and return gradient matrix
+        # nice function organizes and return gradient matrix
         x_next_gradient = autoDiffToGradientMatrix(x_next_autodiff)
         # split into Ai, Bi, Gi
         Ai = x_next_gradient[:, 0:self.nx]
@@ -61,18 +94,20 @@ class System():
 
 
 class Car(System):
+    """Example System subclass for system dynamics.
+    Car which can move in a 2D plane. If w not specified assumed to be 0s.
+    state: np.array([[x, y, theta, speed, steer_angle]]).T
+    """
 
-
-    def dynamics(self, state, inputs, uncertainty=None):
-        if uncertainty is None:
-            uncertainty = np.zeros((self.nw, 1))
-        #["x_pos", "y_pos", "heading", "speed", "steer_angle"]
+    def dynamics(self, x, u, w=None):
+        if w is None:
+            w = np.zeros((self.nw, 1))
         x_next = np.array([
-            state[0] + self.dir*self.dt*(state[3]*np.cos(state[2])),
-            state[1] + self.dir*self.dt*(state[3]*np.sin(state[2])),
-            state[2] + self.dir*self.dt*(state[3]*np.tan(state[4] + uncertainty[0])),
-            state[3] + self.dir*self.dt*(inputs[0]),
-            state[4] + self.dir*self.dt*(inputs[1] + uncertainty[1])])
+            x[0] + self.dir*self.dt*(x[3]*np.cos(x[2])),
+            x[1] + self.dir*self.dt*(x[3]*np.sin(x[2])),
+            x[2] + self.dir*self.dt*(x[3]*np.tan(x[4] + w[0])),
+            x[3] + self.dir*self.dt*(u[0]),
+            x[4] + self.dir*self.dt*(u[1] + w[1])])
         return x_next
 
 
@@ -112,7 +147,7 @@ class Input():
 
     def setType(self, type_):
         """Sets type of input.
-        type_       'deterministic'/'random'
+        type_       :'deterministic'/'random':
         """
         assert type_ == 'deterministic' or type_ == 'random'
         self.type = type_
@@ -121,6 +156,7 @@ class Input():
         """Once determinePossibleActions has been called to set all possible actions,
         if input type is random can choose how many actions to sample when calculating
         reachable states. Input type deterministic will always use all provided actions
+        n       :int:       number of sample to use
         """
         assert self.type == 'random'
         self.numsamples = n
@@ -157,6 +193,9 @@ class Input():
         """Obtain one action from self.actions. If deterministic, uses provided idx.
         If random, generates random idx to get action. Returns idx, action pair for
         bookkeeping necessary if using in RERRT reachable state functions.
+        idx         :int:       idx into Input.actions
+        Note: slight abuse indexing/keys, using this number as both a key for a dict
+        in node.reachable and an index into Input.actions which is a list
         """
         if self.type == 'deterministic': return idx, self.actions[idx]
         rand_idx = np.random.randint(low=0, high=len(self.actions))
