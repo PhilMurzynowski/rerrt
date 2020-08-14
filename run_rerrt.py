@@ -4,6 +4,7 @@ Run RERRT
 
 # python libraries
 import numpy as np
+import matplotlib.pyplot as plt
 
 # custom classes
 from trees.rrt import RRT

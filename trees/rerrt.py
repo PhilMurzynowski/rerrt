@@ -153,7 +153,7 @@ class RERRT(RRT):
             if not self.inRegion(new_node.x[0:2]) or self.inObstacle(new_node.x[0:2]):
                 # invalid node
                 continue
-            new_node.parent.set_u(new_u)
+            new_node.parent.setU(new_u)
             new_node.parent.getJacobians(self.system)
             branch = self.calcEllipsesGivenEndNode(new_node, opts)
             # check for new collisions after recalculating ellipsoids
@@ -178,7 +178,7 @@ class RERRT(RRT):
                     valid_extension = False
             if not valid_extension: continue
             for new_node in new_nodes:
-                new_node.set_u(new_u)
+                new_node.setU(new_u)
                 new_node.getJacobians(self.system)
                 new_node.calcSi(opts['Q'], opts['R'], new_node.parent)
                 new_node.calcKi(opts['R'], new_node.parent)

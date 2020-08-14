@@ -93,6 +93,9 @@ class Input():
     def setType(self, input_type):
         self.type = input_type
 
+    def setNumSamples(self, n):
+        assert self.type == 'random', 
+
     def determineActions(self, resolutions):
         # pass in resolution for desired actions
         # higher resolutions will result in more action combinations
@@ -102,7 +105,7 @@ class Input():
         # will create 6 different action combinations, again sampling
         # between -limit and limit for each dimension
         # limits are described in self.limits
-        assert self.type == 'deterministic', 'fnc only for deterministic type'
+        # assert self.type == 'deterministic', 'fnc only for deterministic type'
         assert resolutions.size == self.dim
         num_combinations = int(np.prod(resolutions))
         self.actions = np.zeros((num_combinations, self.dim, 1))
@@ -110,6 +113,6 @@ class Input():
             repeat = int(num_combinations/r)
             tmp = np.tile(np.linspace(-self.limits[idx], self.limits[idx], r), repeat).reshape(num_combinations, 1)
             self.actions[:, idx, :] = tmp
-        self.numsamples = num_combinations
+        if self.type == 'deterministic': self.numsamples = num_combinations
 
 

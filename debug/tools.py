@@ -1,6 +1,11 @@
 from visuals.plotting import plotNode, drawEllipsoids
 import matplotlib.pyplot as plt
 
+#print(f'cond: {np.linalg.cond(abk)}')
+#e = np.linalg.eigvals(abk)
+#print(f'e_max: {max(e)} e_min: {min(e)}')
+
+
 def traceChildren(node, genleft, color, plotted):
     #node.ellipse.convertFromMatrix()
     plotNode(node, new_figure=False, color=color)
