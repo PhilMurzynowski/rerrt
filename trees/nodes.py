@@ -64,7 +64,8 @@ class RERRTNode(RRTNode):
             self.children = []
 
     def createEllipse(self):
-        """Create Ellipse object for node."""
+        """Create Ellipse object for node.
+        """
         # let EE bet E^1/2
         # take first 2 dimensions and project. Note: update to support higher dimensions?
         EE = scipy.linalg.sqrtm(self.E)
@@ -77,7 +78,8 @@ class RERRTNode(RRTNode):
     def setEi(self, Ei):
         """Set function to set initial uncertainty in state or called during propagation.
         Automatically creates an associated Ellipse object for visualization and collision checking.
-        Ei  :nparray: (nx x nx)"""
+        Ei  :nparray: (nx x nx)
+        """
         self.E = Ei
         self.createEllipse()
 
@@ -85,23 +87,27 @@ class RERRTNode(RRTNode):
         """Set function to set initial uncertainty due to past uncertainty or called during propagation.
         Initial values will always 0 as at the first timestep there is no past uncertainty besides the
         uncertainty captured by E0.
-        Hi  :nparray: (nx x nw)"""
+        Hi  :nparray: (nx x nw)
+        """
         self.H = Hi
 
     def setSi(self, Si):
         """Set function to set initial cost or called during propagation.
         For TVLQR, the initial cost would be 0 on the final node and then propagated backwards.
-        Si  :nparray: (nx x nx)"""
+        Si  :nparray: (nx x nx)
+        """
         self.S = Si
 
     def setU(self, u):
         """ Set control input for node.
-        u   :nparray: (nu x 1)"""
+        u   :nparray: (nu x 1)
+        """
         self.u = u
 
     def getJacobians(self, system):
         """Obtain linearized matrices for nonlinear system.
-        Wrapper function for the system.getJacobians function."""
+        Wrapper function for the system.getJacobians function.
+        """
         self.A, self.B, self.G = system.getJacobians(self.x, self.u)
 
     def calcSi(self, Q, R, nextNode):
@@ -109,7 +115,8 @@ class RERRTNode(RRTNode):
         Calculated on the node level to abstract from tree growth direction.
         Q           :nparray: (nx x nx)     TVLQR state penalty matrix
         R           :nparray: (nu x nu)     TVLQR input penalty matrix
-        nextNode    :RERRTNode:             node at future timestep"""
+        nextNode    :RERRTNode:             node at future timestep
+        """
         nextN = nextNode
         self.S = Q + self.A.T@nextN.S@self.A - self.A.T@nextN.S@self.B@np.linalg.inv(R + self.B.T@nextN.S@self.B)@self.B.T@nextN.S@self.A
 
@@ -117,9 +124,10 @@ class RERRTNode(RRTNode):
         """Calculate control matrices K for TVLQR.
         the next node must have a valid cost (S) either through initialization or calcSi
         R           :nparray: (nu x nu)     TVLQR input penalty matrix
-        nextNode    :RERRTNode:             node at future timestep"""
+        nextNode    :RERRTNode:             node at future timestep
+        """
         nextN = nextNode
-        self.K = np.linalg.inv(R + self.B.T@p.S@self.B)@self.B.T@p.S@self.A
+        self.K = np.linalg.inv(R + self.B.T@nextN.S@self.B)@self.B.T@nextN.S@self.A
 
     def propogateEllipse(self, D, nextNode):
         """Propogate ellipse characerized by E to nextNode at future timestep.
@@ -128,7 +136,8 @@ class RERRTNode(RRTNode):
         may get negative eigen values on the order of machine precision.
         This is adjusted with getNearPD
         D           :nparray: (nw x nw)     Matrix describing ellipsoidal uncertainty set
-        nextNode    :RERRTNode:             node at future timestep"""
+        nextNode    :RERRTNode:             node at future timestep
+        """
         abk = self.A-self.B@self.K
         En = abk@self.E@abk.T
         En += abk@self.H@self.G.T + self.G@self.H.T@abk.T
@@ -139,25 +148,29 @@ class RERRTNode(RRTNode):
         nextNode.setHi(Hn)
         nextNode.setEi(En)
 
-    def calcReachableMultiTimeStep(self, system, inputConfig, opts):
+    def calcReachableMultiTimeStep(self, system, input_, opts):
         """Determine the set of states reachable by holding each possible action
         for multiple timesteps. Number of timesteps determined by extend_by.
         If input type is determinstic, calculates reachable state for each determined input.
         If input type is random, Note: not yet implemented.
         Collision checking not included here as it is cheaper to check when trying to add node
         if there is a larger amount  of reachable states. Efficiency determined by likelihood
-        of being in obstacle vs likelihood of being selected."""
-        for i, action in enumerate(inputConfig.actions):
+        of being in obstacle vs likelihood of being selected.
+        """
+        for i in range(input_.numsamples):
+            key, action = input_.getAction(i)
             self.reachable[i] = system.simulate(self.x, action, opts['extend_by'], opts['direction'])
 
     def popReachable(self, key):
         """Removes reachable state. Meant to be used after creation of node so that the state is not
-        double counted as both a node and a reachable state."""
+        double counted as both a node and a reachable state.
+        """
         return self.reachable.pop(key)
 
     def addChild(self, child):
         """Adds child to node. Currently implemented as a list.
-        child       :RERRTNode:             node to add as child"""
+        child       :RERRTNode:             node to add as child
+        """
         self.children.append(child)
 
     def calcCost(self):

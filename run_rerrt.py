@@ -59,10 +59,10 @@ sys = Car(sys_opts)
 #   'nu'   :int:    dim of input
 #   'nw'   :int:    dim of uncertainty
 
-inputConfig = Input(dim=sys_opts['nu'])
-inputConfig.setLimits(np.array([10, 10]))
-inputConfig.setType('deterministic')
-inputConfig.determineActions(resolutions=np.array([2, 3]))
+# named input_ to avoid conflict with python keyword input
+input_ = Input(dim=sys_opts['nu'], type_='deterministic')
+input_.setLimits(np.array([10, 10]))
+input_.determinePossibleActions(resolutions=np.array([2, 3]))
 
 #   setLimits          args     :nparray: (dim(input),)         max magnitude of each input
 #   setType            args     :'random'/'deterministic':      input sampling type, often abbrv. input type 
@@ -76,7 +76,7 @@ collision_function = col.selectCollisionChecker('erHalfMtxPts')
 tree = RERRT(start=start_state,
              goals=goal_states,
              system=sys,
-             inputConfig=inputConfig,
+             input_=input_,
              scene=scene,
              collision_function=collision_function)
 

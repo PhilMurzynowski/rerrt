@@ -24,14 +24,14 @@ from visuals.plotting import Scene
 class RERRT(RRT):
 
 
-    def __init__(self, start, goals, system, inputConfig, scene, collision_function):
+    def __init__(self, start, goals, system, input_, scene, collision_function):
         self.start = start
         # multiple goals only currently used for backwards RRT
         self.goals = goals
         # set first goal state to default goal
         self.goal = goals[0]
         self.system = system
-        self.input = inputConfig
+        self.input = input_
         self.scene = scene
         self.region = scene.region
         self.obstacles = scene.obstacles
