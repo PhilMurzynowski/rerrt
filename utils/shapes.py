@@ -9,12 +9,17 @@ import matplotlib.patches as patches
 
 
 class Rectangle:
+    """
+    Class used to describe a rectangle in 2D. In the context of RERRT, used to
+    obtain linear equations for obstacle and collision checking.
+
+    Note: Can be updated to inherit from a more general ConvexPolygon Class in n-dim
+    """
 
 
-    def __init__(self, bottomleft_corner, width, height, Pc=None, angle=0):
+    def __init__(self, bottomleft_corner, width, height, angle=0):
         """cjt is the center of rectangle, thought of as translation.
            may be more efficient to incorporate time into object"""
-        self.Pc = Pc    # covariance, add fnc to rotate appropriately
         self.angle = angle
         self.angle_rad = angle*np.pi/180
         # bottomleft_corner is defined with regards to angle=0 and rotates appropriately
@@ -26,9 +31,9 @@ class Rectangle:
         self.num = len(self.vertices)
         self.w = width
         self.h = height
-        self.get_polyhedron()
+        self.getPolyhedron()
 
-    def get_lineqns(self, two_points):
+    def getLinearEqns(self, two_points):
         # want ax + by = c from two pts
         # returns a, b, c
         # (y1-y2) * x + (x2-x1) * y + (x1-x2)*y1 + (y2-y1)*x1 = 0
@@ -36,16 +41,16 @@ class Rectangle:
         x2, y2 = two_points[1]
         return y1-y2, x2-x1, (x1-x2)*-y1 - (y2-y1)*x1
 
-    def get_Ab(self, adj_pairs):
+    def getAb(self, adj_pairs):
         self.A = np.zeros((4, 2))
         self.b = np.zeros((4, 1))
         for i, pair in enumerate(adj_pairs):
-            self.A[i][0], self.A[i][1], self.b[i] = self.get_lineqns(pair)
+            self.A[i][0], self.A[i][1], self.b[i] = self.getLinearEqns(pair)
         self.A = -self.A
         self.b = -self.b    # flip sign to match literature for inequality
         # written as inequalities <= the conjunction of half spaces gives obstacle
 
-    def get_c(self):
+    def getC(self):
         # self.c = np.linalg.solve(self.A, self.b)
         # self.c = np.linalg.pinv(self.A).dot(self.b)
         # c_ijt is a point nominally (i.e. cj = 0) on the ith constraint at time step t
@@ -59,13 +64,13 @@ class Rectangle:
         self.c[2] = self.v4.reshape(2, 1)
         self.c[3] = self.v1.reshape(2, 1)
 
-    def get_polyhedron(self):
+    def getPolyhedron(self):
         adj_pairs = []
         for i in range(self.num-1):
             adj_pairs.append(self.vertices[i:(i+2)])
         adj_pairs.append([self.vertices[-1], self.vertices[0]])
-        self.get_Ab(adj_pairs)
-        self.get_c()
+        self.getAb(adj_pairs)
+        self.getC()
 
     def inPoly(self, point):
         # reshape is slow, fix later
@@ -127,7 +132,7 @@ class Ellipse():
             w = self.w
         if h is None:
             h = self.h
-        rotate = get_rotation_mtx(angle)
+        rotate = getRotationMtx2D(angle)
         #self.mtx = np.linalg.inv(rotate@np.diag(((2/w)**2, (2/h)**2))@rotate.T)
         self.mtx = np.linalg.inv(rotate@np.diag(((2/w)**2, (2/h)**2))@rotate.T)
 

@@ -1,3 +1,8 @@
+"""
+File under constant changes, currently not adding doc
+"""
+
+
 from visuals.plotting import plotNode, drawEllipsoids
 import matplotlib.pyplot as plt
 

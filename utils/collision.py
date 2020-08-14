@@ -8,7 +8,7 @@ class CollisionDetection():
     Class designed to contain selection of collision detection methods.
     Currently supports:
         ellipse-rectangle collision halfmtx points heuristic
-    GJK Algorithm for general convex polygons coming shortly..
+    Note: GJK Algorithm for general convex polygons coming shortly..
     """
 
 
@@ -28,7 +28,7 @@ class CollisionDetection():
 
     def selectCollisionChecker(self, name):
         """Selection tool to return desired collision detection method
-        can update to use dir, or such so don't need to maintain dictionary of all methods
+        Note: Can update to use dir, or such so don't need to maintain dictionary of all methods
         """
         if name == 'erHalfMtxPts':
             return self.erHalfMtxPts
