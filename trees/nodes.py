@@ -14,14 +14,23 @@ class RRTNode:
         parent      Node that was extended from by a single timestep.
                     Forward in time if forward RRT, backward in time for backward RRT.
         n           Time sample, not necessary, mostly debug information.
+        children    Children of node, added if tree grows and track_children enabled.
     """
 
 
-    def __init__(self, x, parent=None):
+    def __init__(self, x, parent=None, opts=None):
         if x.shape != (x.size, 1): x = x.reshape(x.size, 1)
         self.x = x
         self.parent = parent
         self.n = self.parent.n+1 if self.parent is not None else 0
+        if opts['track_children']:
+            self.children = []
+
+    def addChild(self, child):
+        """Adds child to node. Currently implemented as a list.
+        child       :RRTNode:             node to add as child
+        """
+        self.children.append(child)
 
 
 class RERRTNode(RRTNode):
@@ -44,12 +53,11 @@ class RERRTNode(RRTNode):
         ellipse     Object made with projection of E into 2D (or3D?) for visualization and collision checking.
         reachable   Set of states that are reachable from that node by simulating the system forward extend_by
                     number of times with given system.dt.
-        children    Children of node, added if tree grows and track_children enabled.
     """
 
 
     def __init__(self, x, parent=None, u=None, opts=None):
-        super().__init__(x, parent)
+        super().__init__(x, parent, opts)
         self.u = None
         self.A = None
         self.B = None
@@ -60,8 +68,6 @@ class RERRTNode(RRTNode):
         self.E = None
         self.ellipse = None
         self.reachable = {}
-        if opts['track_children']:
-            self.children = []
 
     def createEllipse(self):
         """Create Ellipse object for node.
@@ -166,12 +172,6 @@ class RERRTNode(RRTNode):
         double counted as both a node and a reachable state.
         """
         return self.reachable.pop(key)
-
-    def addChild(self, child):
-        """Adds child to node. Currently implemented as a list.
-        child       :RERRTNode:             node to add as child
-        """
-        self.children.append(child)
 
     def calcCost(self):
         raise NotImplementedError

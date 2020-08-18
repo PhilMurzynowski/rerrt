@@ -22,20 +22,20 @@ from visuals.helper import printProgressBar,  pickRandomColor
 from visuals.plotting import Scene
 
 class RERRT(RRT):
+    """
 
 
-    def __init__(self, start, goals, system, input_, scene, collision_function):
-        self.start = start
-        # multiple goals only currently used for backwards RRT
-        self.goals = goals
-        # set first goal state to default goal
-        self.goal = goals[0]
-        self.system = system
-        self.input = input_
-        self.scene = scene
-        self.region = scene.region
-        self.obstacles = scene.obstacles
-        self.poly = [self.region] + self.obstacles
+    Required options:
+        Those required by RRT
+        D
+        E0
+        Q   (if using TVLQR)
+        R   (if using TVLQR)
+    """
+
+
+    def __init__(self, start, goals, system, input_, scene, collision_function, opts):
+        super().__init__(start, goals, system, input_, scene, opts)
         self.collision = collision_function
 
     def nodeCollision(self, node):
@@ -57,28 +57,12 @@ class RERRT(RRT):
         best_reach = None
         for i in range(L):
             for key, reach in self.node_list[L-1-i].reachable.items():
-                distance = self.distance_metric(new_location, reach)
+                distance = self.distanceMetric(new_location, reach)
                 if distance < smallest_distance:
                     smallest_distance = distance
                     reaching_node = self.node_list[L-1-i]
                     best_reach = key
         return reaching_node, best_reach, smallest_distance
-
-    def extendReachable(self, opts):
-        # performs sampling and returns nearest reachable state
-        # if nearest state is a node not a reachable state, tries again
-        best_reach_dist = np.Inf
-        best_node_dist = np.Inf
-        extra_attempts = -1
-        while best_node_dist <= best_reach_dist:
-            samp = self.sample(opts)
-            reaching_node, key, best_reach_dist = self.nearestReachableState(samp)
-            node, best_node_dist = self.nearest_node(samp, get_dist=True)
-            extra_attempts += 1
-        new_node = RERRTNode(reaching_node.popReachable(key), reaching_node, opts=opts)
-        # after conversion to node no longer counted as reachable state
-        # abusing key and idx here, whoops
-        return new_node, self.input.actions[key], extra_attempts
 
     def extendReachableMultiTimeStep(self, opts):
         # performs sampling and returns nearest reachable state
@@ -89,7 +73,7 @@ class RERRT(RRT):
         while best_node_dist <= best_reach_dist:
             samp = self.sample(opts)
             reaching_node, key, best_reach_dist = self.nearestReachableState(samp)
-            node, best_node_dist = self.nearest_node(samp, get_dist=True)
+            node, best_node_dist = self.nearestNode(samp, get_dist=True)
             extra_attempts += 1
         new_nodes = []
         # remove reachable state, inefficient because recalculating here
@@ -104,25 +88,10 @@ class RERRT(RRT):
             parent = new_nodes[-1]
         return new_nodes, self.input.actions[key], extra_attempts
 
-    def extend(self, opts):
-        # returns a node and the control input used
-        samp = self.sample(opts)
-        closest = self.nearest_node(samp)
-        new_x, new_u = self.steer(closest, samp, opts)
-        new_node = RERRTNode(new_x, closest, opts=opts)
-        return new_node, new_u
-
-    def extendMultiTimeStep(self, opts):
-        # returns a node and the control input used
-        samp = self.sample(opts)
-        closest = self.nearest_node(samp)
-        extension, new_u = self.steerMultiTimeStep(closest, samp, opts)
-        new_nodes = [RERRTNode(extension[0], closest, opts=opts)]
-        for i in range(1, opts['extend_by']):
-            new_nodes.append(RERRTNode(extension[i], new_nodes[-1], opts=opts))
-        return new_nodes, new_u
-
     def ellipseTreeExpansion(self, opts):
+        """Same function as RRT's treeExpansion except using ellipses
+        and reachability.
+        """
         if opts['direction'] == 'forward':
             self.start = RERRTNode(self.start, opts=opts) # overwrite self.start
             self.node_list = [self.start]
@@ -144,8 +113,8 @@ class RERRT(RRT):
 
     def ellipseTreeForwardExpansion(self, opts):
         iter_step = 0
-        best_dist_to_goal = self.dist_to_goal(self.start.x[0:2])
-        while best_dist_to_goal > opts['min_dist'] and iter_step < opts['max_iter']:
+        best_distToGoal = self.distToGoal(self.start.x[0:2])
+        while best_distToGoal > opts['min_dist'] and iter_step < opts['max_iter']:
             iter_step+=1
             printProgressBar(iter_step, opts['max_iter'])
             new_node, new_u  = self.extend(opts)
@@ -159,12 +128,12 @@ class RERRT(RRT):
             # check for new collisions after recalculating ellipsoids
             if not self.branchCollision(branch):
                 self.node_list.append(new_node)
-                new_dist = self.dist_to_goal(new_node.x[0:2])
-                if new_dist < best_dist_to_goal: best_dist_to_goal = new_dist
+                new_dist = self.distToGoal(new_node.x[0:2])
+                if new_dist < best_distToGoal: best_distToGoal = new_dist
 
     def ellipseTreeBackwardExpansion(self, opts):
         iter_step = 0
-        initial_dist = self.dist_to_goal(self.starts[0].x[:2])
+        initial_dist = self.distToGoal(self.starts[0].x[:2])
         best_dist = initial_dist
         best_start_node = None
         while best_dist > opts['min_dist'] and iter_step < opts['max_iter']:
@@ -188,7 +157,7 @@ class RERRT(RRT):
                 for new_node in new_nodes:
                     if opts['track_children']: new_node.parent.addChild(new_node)
                     new_node.calcReachableMultiTimeStep(self.system, self.input, opts)
-                    new_dist = self.dist_to_goal(new_node.x[:2])
+                    new_dist = self.distToGoal(new_node.x[:2])
                     if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node
             printProgressBar('Iterations complete', iter_step, opts['max_iter'])
             printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)

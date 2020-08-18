@@ -52,7 +52,7 @@ class System():
         return self.dynamics(x, u, w)
 
     def simulate(self, x_start, u, num_timesteps, direction, w=None):
-        """Simulate system in direction holding input_ for num_timesteps
+        """Simulate system in direction holding u for num_timesteps
         x_start     :nparray: (nx x 1)          starting state
         u           :nparray: (nu x 1)          input to simulate with (single input, held constant for num_timsteps)
         n           :int:                       number of timesteps to simulate

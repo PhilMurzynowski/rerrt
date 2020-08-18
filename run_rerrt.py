@@ -72,23 +72,17 @@ input_.determinePossibleActions(resolutions=np.array([2, 3]))
 col = CollisionDetection()
 collision_function = col.selectCollisionChecker('erHalfMtxPts')
 
-# initialize RRT_Dirtrel
-tree = RERRT(start=start_state,
-             goals=goal_states,
-             system=sys,
-             input_=input_,
-             scene=scene,
-             collision_function=collision_function)
 
-# run RRT_Dirtrel
+# options to configure RERRT initialization and expansion
 run_options = {
     'min_dist':          1,                             # :float:                       min dist to goal
     'max_iter':         50,                            # :int:                         iterations
-    'plot_size':        (10, 10),                       # :(int, int):                  plot size
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
     'track_children':   True,                           # :bool:                        keep record of children of node
-    'goal_sample_rate': 0.20,                           # :float:                       goal sample freq. (out of 1)
     'extend_by':        20,                             # :int:                         num timesteps to simulate in steer function with each extension
+    'goal_sample_rate': 0.20,                           # :float:                       goal sample freq. (out of 1)
+    'sample_dim':       2,                              # :int:                         Determine how many dimensions to sample in, e.g. 2 for 2D
+    'distanceMetric':   None,                           # :function:                    By default 2D euclidean norm, but can pass in alternatives
     'D':                0.00*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
     'E0':               0.10*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
     'Q':                np.diag((5, 5, 0, 0, 0)),       # :nparray: (nx x nx)           TVLQR Q
@@ -98,10 +92,19 @@ run_options = {
     'QlN':              np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           see above
 }
 
+# initialize RERRT
+tree = RERRT(start=start_state,
+             goals=goal_states,
+             system=sys,
+             input_=input_,
+             scene=scene,
+             collision_function=collision_function,
+             opts=run_options)
+
 print('\nTree Expanding...')
 tree.ellipseTreeExpansion(run_options)
 print('\nPlotting...')
-final_path = tree.final_path()
+final_path = tree.finalPath()
 # order determines what gets occluded in figure
 drawScene(scene, size=(15, 15))
 # drawScene is called first as it creates the figure then shows region+obstacles

@@ -1,25 +1,20 @@
 """
-Testing file
+Test RRT functionality
 """
 
 # python libraries
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-
-#from pydrake.common.containers import namedview
-#import pydrake.math as mr
 
 # custom classes
 from trees.rrt import RRT
-from trees.rerrt import RERRT
 from utils.shapes import Rectangle, Ellipse
 from utils.collision import CollisionDetection
 from utils.systems import Input, System, Car
 from visuals.helper import pickRandomColor
 from visuals.plotting import (Scene, drawScene, drawTree, drawReachable,
                               drawEllipsoids, drawEllipsoidTree)
-from debug.tools import *
+
 
 # Initialize start, goal, bounds on area
 start = [12.5, 12.5]
@@ -36,6 +31,7 @@ num_goal_states = 10
 eps = 1e-4
 goal_speed = 1
 # creates a tiny ring of nodes with heading adjusted to be facing inwards 
+# don't have general function as this is rather specific to dynamics
 # (outwards for backward RRT if doing backward integration)
 goal_states = [np.array([goal[0]+eps*np.cos(theta)]+[goal[1]+eps*np.sin(theta)]+[(theta+np.pi)%(2*np.pi), goal_speed, 0]).reshape(5, 1) for theta in np.linspace(-np.pi, np.pi, num_goal_states, endpoint=False)]
 
@@ -62,10 +58,10 @@ sys = Car(sys_opts)
 #   'nu'   :int:    dim of input
 #   'nw'   :int:    dim of uncertainty
 
-inputConfig = Input(dim=sys_opts['nu'])
-inputConfig.setLimits(np.array([10, 10]))
-inputConfig.setType('deterministic')
-inputConfig.determineActions(resolutions=np.array([2, 3]))
+# named input_ to avoid conflict with python keyword input
+input_ = Input(dim=sys_opts['nu'], type_='deterministic')
+input_.setLimits(np.array([10, 10]))
+input_.determinePossibleActions(resolutions=np.array([2, 3]))
 
 #   setLimits          args     :nparray: (dim(input),)         max magnitude of each input
 #   setType            args     :'random'/'deterministic':      input sampling type, often abbrv. input type 
@@ -75,23 +71,17 @@ inputConfig.determineActions(resolutions=np.array([2, 3]))
 col = CollisionDetection()
 collision_function = col.selectCollisionChecker('erHalfMtxPts')
 
-# initialize RRT_Dirtrel
-tree = RERRT(start=start_state,
-             goals=goal_states,
-             system=sys,
-             inputConfig=inputConfig,
-             scene=scene,
-             collision_function=collision_function)
 
-# run RRT_Dirtrel
+# options to configure RERRT initialization and expansion
 run_options = {
     'min_dist':          1,                             # :float:                       min dist to goal
-    'max_iter':         100,                            # :int:                         iterations
-    'plot_size':        (10, 10),                       # :(int, int):                  plot size
+    'max_iter':         1e3,                            # :int:                         iterations
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
     'track_children':   True,                           # :bool:                        keep record of children of node
+    'extend_by':        10,                             # :int:                         num timesteps to simulate in steer function with each extension
     'goal_sample_rate': 0.20,                           # :float:                       goal sample freq. (out of 1)
-    'extend_by':        5,                             # :int:                         num timesteps to simulate in steer function with each extension
+    'sample_dim':       2,                              # :int:                         Determine how many dimensions to sample in, e.g. 2 for 2D
+    'distanceMetric':   None,                           # :function:                    By default 2D euclidean norm, but can pass in alternatives
     'D':                0.00*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
     'E0':               0.10*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
     'Q':                np.diag((5, 5, 0, 0, 0)),       # :nparray: (nx x nx)           TVLQR Q
@@ -101,34 +91,26 @@ run_options = {
     'QlN':              np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           see above
 }
 
+# initialize RERRT
+tree = RRT(start=start_state,
+             goals=goal_states,
+             system=sys,
+             input_=input_,
+             scene=scene,
+             opts=run_options)
+
 print('\nTree Expanding...')
-tree.ellipseTreeExpansion(run_options)
+tree.treeExpansion(run_options)
 print('\nPlotting...')
-final_path = tree.final_path()
+final_path = tree.finalPath()
+print(f'max children: {max((len(n.children) for n in final_path))}')
+print(final_path[-1].children)
 # order determines what gets occluded in figure
 drawScene(scene, size=(15, 15))
 # drawScene is called first as it creates the figure then shows region+obstacles
-#drawReachable(tree.node_list, fraction=1.00)
-# fractional plotting is used as dataset becomes huge
 drawTree(tree, color='blue')
 #drawPath(final_path, color='red')
-# hlfmtxpts drawing currently is not optimized
-#drawEllipsoids(final_path, hlfmtxpts=False, fraction=1.00)
-drawEllipsoidTree(tree, run_options)
-print('Finished\n')
-
-
-# cleanup
-# ellipse debugging
-
-print('Debugging...')
-drawScene(scene, size=(15, 15))
-drawTree(tree, color='blue')
-debugLargestEllipse(tree, run_options)
 print('Finished\n')
 plt.show()
-
-
-
 
 
