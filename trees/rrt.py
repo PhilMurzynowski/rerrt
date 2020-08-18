@@ -218,11 +218,11 @@ class RRT:
 
     def treeBackwardExpansion(self, opts):
         """Expand the tree backward in time from the goal to the start
-        (goal is made the start and start the goal).
+        (goal has been made the start and start the goal).
         While have not hit the maximum number of iterations or close to
         destination, attempts to extend the tree. If the states of the extending
         nodes are not valid, then the extension is rejected.
-        Required options;
+        Required options:
             min_dist
             max_iter
             track_children
@@ -233,6 +233,7 @@ class RRT:
         best_start_node = None
         while best_dist > opts['min_dist'] and iter_step < opts['max_iter']:
             iter_step+=1
+            # obtain extension
             new_nodes, new_u = self.extend(opts) # u not needed, so kept as _
             valid_extension = True
             # checks if nodes in extension are in valid states

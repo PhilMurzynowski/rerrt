@@ -154,7 +154,7 @@ class RERRTNode(RRTNode):
         nextNode.setHi(Hn)
         nextNode.setEi(En)
 
-    def calcReachableMultiTimeStep(self, system, input_, opts):
+    def getReachable(self, system, input_, opts):
         """Determine the set of states reachable by holding each possible action
         for multiple timesteps. Number of timesteps determined by extend_by.
         If input type is determinstic, calculates reachable state for each determined input.

@@ -70,7 +70,7 @@ collision_function = col.selectCollisionChecker('erHalfMtxPts')
 
 # options to configure RERRT initialization and expansion
 run_options = {
-    'min_dist':          1,                             # :float:                       min dist to goal
+    'min_dist':         1e-1,                             # :float:                       min dist to goal
     'max_iter':         50,                            # :int:                         iterations
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
     'track_children':   True,                           # :bool:                        keep record of children of node
@@ -93,11 +93,11 @@ tree = RERRT(start=start_state,
              system=sys,
              input_=input_,
              scene=scene,
-             collision_function=collision_function,
+             collision_func=collision_function,
              opts=run_options)
 
 print('\nTree Expanding...')
-tree.ellipseTreeExpansion(run_options)
+tree.treeExpansion(run_options)
 print('\nPlotting...')
 final_path = tree.finalPath()
 # order determines what gets occluded in figure

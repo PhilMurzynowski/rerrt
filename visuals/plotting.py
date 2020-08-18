@@ -138,7 +138,7 @@ def drawEllipsoidTree(tree, opts):
     extremely memory intensive. So if the path branches only the last propogated
     value will be kept. This basic way to draw all ellipses with backwards RRT
     must first find all valid start nodes and for each start node reprogate from
-    that start node and draw ellipses.
+    that start node and draw ellipses
     Note: Currently only supports backward RERRT.
     tree    :RERRT:     tree that has been grown with tree.ellipseTreeExpansion
     opts    :dict:      options that tree was expanded with
@@ -148,8 +148,8 @@ def drawEllipsoidTree(tree, opts):
     if opts['direction'] == 'backward':
         startnodes = (n for n in tree.node_list if len(n.children)==0)
         for startnode in startnodes:
-            valid_propagation = tree.repropagateEllipses(startnode, opts)
-            assert valid_propagation, 'BUG'
+            robust = tree.robustnessCheck(startnode, opts)
+            assert robust, 'BUG'
             path = tree.getPath(startnode, reverse=False)
             drawEllipsoids(path, color=pickRandomColor())
     elif opts['direction'] == 'forward':
