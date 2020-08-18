@@ -12,14 +12,9 @@ import matplotlib.patches as patches
 #import pydrake.math as m
 
 # custom classes
-from trees.nodes import RRTNode, RERRTNode
+from trees.nodes import RERRTNode
 from trees.rrt import RRT
-from utils.shapes import Rectangle, Ellipse
-from utils.collision import CollisionDetection
-from utils.systems import System
-from utils.math import isPSD, isSymmetric, getNearPSD, getNearPD
-from visuals.helper import printProgressBar,  pickRandomColor
-from visuals.plotting import Scene
+from visuals.helper import printProgressBar
 
 class RERRT(RRT):
     """

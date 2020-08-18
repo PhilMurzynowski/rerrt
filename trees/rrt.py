@@ -4,8 +4,8 @@ Base RRT Implementation
 
 import numpy as np
 import matplotlib.pyplot as plt
-from trees.nodes import RRTNode
 
+from trees.nodes import RRTNode
 from visuals.helper import printProgressBar
 
 
