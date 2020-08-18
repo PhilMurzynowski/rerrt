@@ -1,5 +1,5 @@
 """
-Test RRT functionality
+RRT Example
 """
 
 # python libraries

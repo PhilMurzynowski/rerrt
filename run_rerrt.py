@@ -1,5 +1,5 @@
 """
-Run RERRT
+RERRT Example
 """
 
 # python libraries
@@ -23,22 +23,16 @@ goal = [0, 0]
 region = Rectangle([-5, -5], 20, 20)
 
 # start_state used for forward expansion as start
-# goal_states used for backward expansion as start
-#   multiple goals states allow for more flexibility in tree growth using backwards RRT, esp with nonlinear systems
+# goal_state used for backward expansion as start
 # currently RRT does not require both starting state and ending state to belong to final tree
 # one must be the root of tree and returns solution closest to other desired state
 start_state = np.array(start + [-np.pi*2/3, 5, 0]).reshape(5, 1)
-num_goal_states = 10
-eps = 1e-4
-goal_speed = 1
-# creates a tiny ring of nodes with heading adjusted to be facing inwards 
-# don't have general function as this is rather specific to dynamics
-# (outwards for backward RRT if doing backward integration)
-goal_states = [np.array([goal[0]+eps*np.cos(theta)]+[goal[1]+eps*np.sin(theta)]+[(theta+np.pi)%(2*np.pi), goal_speed, 0]).reshape(5, 1) for theta in np.linspace(-np.pi, np.pi, num_goal_states, endpoint=False)]
+goal_state = np.array(goal + [-np.pi*2/3, 5, 0])
 
 # initialize obstacles
 obstacles = []
-#   Rectangle          args     bottomLeftCornerXY, width, height, angle (degrees rotated about bottomLeftCornerXY)
+#   Rectangle
+#   args     bottomLeftCornerXY, width, height, angle (degrees rotated about bottomLeftCornerXY)
 obstacles.append(Rectangle([7, 11], 3, 1.5, angle=120.0))
 obstacles.append(Rectangle([7, 4], 2.5, 1.5, angle=30.0))
 
@@ -94,7 +88,7 @@ run_options = {
 
 # initialize RERRT
 tree = RERRT(start=start_state,
-             goals=goal_states,
+             goal=goal_state,
              system=sys,
              input_=input_,
              scene=scene,

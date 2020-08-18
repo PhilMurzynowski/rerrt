@@ -34,8 +34,8 @@ class RERRT(RRT):
     """
 
 
-    def __init__(self, start, goals, system, input_, scene, collision_function, opts):
-        super().__init__(start, goals, system, input_, scene, opts)
+    def __init__(self, start, goal, system, input_, scene, collision_function, opts):
+        super().__init__(start, goal, system, input_, scene, opts)
         self.collision = collision_function
 
     def nodeCollision(self, node):
@@ -101,14 +101,14 @@ class RERRT(RRT):
         elif opts['direction'] == 'backward':
             # switch start and goal
             # to grow the tree bacwards list the end point as the start
-            self.goal = np.copy(self.start)
-            self.starts = [RERRTNode(x, opts=opts) for x in self.goals]
-            self.node_list = self.starts.copy()
-            # self.starts are the goals here, growing backwards, apologies aha
-            for i in range(len(self.starts)):
-                self.starts[i].setSi(np.zeros((self.system.nx, self.system.nx)))
-                self.starts[i].calcReachableMultiTimeStep(self.system, self.input, opts)
-                #self.starts[i].plotNode(new_figure=True)
+            tmp = np.copy(self.start)
+            self.start = RERRTNode(self.goal, opts=opts)
+            self.node_list = [self.start]
+            self.goal = tmp
+            # reminder, though setting S to be 0s at self.start
+            # growing backwards so actually setting 0s at destination
+            self.start.setSi(np.zeros((self.system.nx, self.system.nx)))
+            self.start.calcReachableMultiTimeStep(self.system, self.input, opts)
             self.ellipseTreeBackwardExpansion(opts)
 
     def ellipseTreeForwardExpansion(self, opts):
@@ -133,7 +133,7 @@ class RERRT(RRT):
 
     def ellipseTreeBackwardExpansion(self, opts):
         iter_step = 0
-        initial_dist = self.distToGoal(self.starts[0].x[:2])
+        initial_dist = self.distToGoal(self.start.x)
         best_dist = initial_dist
         best_start_node = None
         while best_dist > opts['min_dist'] and iter_step < opts['max_iter']:

@@ -30,7 +30,6 @@ class RRT:
         distanceMetric
 
     To run tree growth call tree.treeExpansion where tree is an :RRT: instance.
-    Note: Update, currently can pass in multiple goals
     Note: Currently functional for 2D, in process of generalizing.
     """
 
@@ -40,10 +39,6 @@ class RRT:
         to configure distanceMetric.
         """
         self.start = start
-        # multiple goals only currently used for backwards RRT
-        #self.goals = goals
-        # set first goal state to default goal
-        #self.goal = goals[0]
         self.goal = goal
         self.system = system
         self.input = input_
@@ -249,8 +244,6 @@ class RRT:
             if not valid_extension: continue
             self.node_list.extend(new_nodes)
             for new_node in new_nodes:
-                #print(new_node)
-                #print(new_node.x)
                 new_node.setU(new_u)
                 if opts['track_children']: new_node.parent.addChild(new_node)
                 new_dist = self.distToGoal(new_node.x[:2])
