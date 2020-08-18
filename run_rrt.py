@@ -9,7 +9,8 @@ import matplotlib.pyplot as plt
 # custom classes
 from trees.rrt import RRT
 from utils.shapes import Rectangle, Ellipse
-from systems.systems import Input, System, Car
+from systems.primitives import Input
+from systems.examples import Car
 from visuals.helper import pickRandomColor
 from visuals.plotting import (Scene, drawScene, drawTree, drawPath)
 
