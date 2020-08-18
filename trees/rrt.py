@@ -35,15 +35,16 @@ class RRT:
     """
 
 
-    def __init__(self, start, goals, system, input_, scene, opts):
+    def __init__(self, start, goal, system, input_, scene, opts):
         """Initalization, parameters descirbed above. Options (opts) passed in
         to configure distanceMetric.
         """
         self.start = start
         # multiple goals only currently used for backwards RRT
-        self.goals = goals
+        #self.goals = goals
         # set first goal state to default goal
-        self.goal = goals[0]
+        #self.goal = goals[0]
+        self.goal = goal
         self.system = system
         self.input = input_
         self.scene = scene
@@ -209,10 +210,10 @@ class RRT:
         elif opts['direction'] == 'backward':
             # switch start and goal
             # to grow the tree bacwards list the end point as the start
-            self.goal = np.copy(self.start)
-            self.starts = [RRTNode(x, opts=opts) for x in self.goals]
-            self.node_list = self.starts.copy()
-            # self.starts are the goals here, growing backwards, apologies aha
+            tmp = np.copy(self.start)
+            self.start = RRTNode(self.goal, opts=opts)
+            self.node_list = [self.start]
+            self.goal = tmp
             self.treeBackwardExpansion(opts)
 
     def treeForwardExpansion(self, opts):
@@ -232,7 +233,7 @@ class RRT:
             track_children
         """
         iter_step = 0
-        initial_dist = self.distToGoal(self.starts[0].x[:2])
+        initial_dist = self.distToGoal(self.start.x)
         best_dist = initial_dist
         best_start_node = None
         while best_dist > opts['min_dist'] and iter_step < opts['max_iter']:
