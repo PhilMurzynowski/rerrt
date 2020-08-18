@@ -21,7 +21,6 @@ class System():
         self.nx = sys_config['nx']
         self.nu = sys_config['nu']
         self.nw = sys_config['nw']
-        self.dir = 1
 
     def dynamics(self, x, u, w=None):
         """Implement in subclass. If w not specified assumed to be 0s.
@@ -37,8 +36,8 @@ class System():
         u       :nparray: (nu x 1)          input
         w       :nparray: (nw x 1), None    uncertainty
         """
-        if self.dir == -1:
-            self.dir = 1
+        if np.sign(self.dt) == -1:
+            self.dt = -self.dt
         return self.dynamics(x, u, w)
 
     def prevState(self, x, u, w=None):
@@ -47,8 +46,8 @@ class System():
         u       :nparray: (nu x 1)          input
         w       :nparray: (nw x 1), None    uncertainty
         """
-        if self.dir == 1:
-            self.dir = -1
+        if np.sign(self.dt) == 1:
+            self.dt = -self.dt
         return self.dynamics(x, u, w)
 
     def simulate(self, x_start, u, num_timesteps, direction, w=None):
