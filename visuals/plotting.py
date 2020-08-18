@@ -79,6 +79,10 @@ def plotNode(node, new_figure=False, color=None, reachable=False, lines=False, e
         plt.show()
 
 def drawPath(path, color='blue'):
+    """Given a path, list,tuple,set, etc. of nodes draws connections between nodes.
+    nodes       :RRTNode: list,set,etc.     nodes to draw
+    color       :string:, (r, g, b)
+    """
     for node in path:
         if node.parent:
             plt.plot([node.x[0], node.parent.x[0]], [node.x[1], node.parent.x[1]], color=color)
@@ -89,7 +93,7 @@ def drawTree(tree, color='blue'):
     color       :string:, :(r, g, b):
     """
     for node in tree.node_list:
-        if node.parent:
+        if node.parent is not None:
             plt.plot([node.x[0], node.parent.x[0]], [node.x[1], node.parent.x[1]], color=color)
 
 def drawReachable(nodes, color='limegreen', fraction=1.00):

@@ -13,6 +13,11 @@ class RRTNode:
         x           State.
         parent      Node that was extended from by a single timestep.
                     Forward in time if forward RRT, backward in time for backward RRT.
+        u           Control input used at node.
+                    Forward RRT simply chooses u by associated best reachable state to extend from.
+                    Backward RRT uses backward integration, simulating the parent node state in reverse
+                    to obtain reachable states and then given best reachable state setting respective u
+                    for the child node (so that it can be used forward in time).
         n           Time sample, not necessary, mostly debug information.
         children    Children of node, added if tree grows and track_children enabled.
     """
@@ -22,9 +27,16 @@ class RRTNode:
         if x.shape != (x.size, 1): x = x.reshape(x.size, 1)
         self.x = x
         self.parent = parent
+        self.u = None
         self.n = self.parent.n+1 if self.parent is not None else 0
         if opts['track_children']:
             self.children = []
+
+    def setU(self, u):
+        """ Set control input for node.
+        u   :nparray: (nu x 1)
+        """
+        self.u = u
 
     def addChild(self, child):
         """Adds child to node. Currently implemented as a list.
@@ -38,11 +50,6 @@ class RERRTNode(RRTNode):
     Structure used to denote point in trajectory with RERRT, modified from RRTNode.
     attributes:
         inherits from RRTNode
-        u           Control input used at node.
-                    Forward RRT simply chooses u by associated best reachable state to extend from.
-                    Backward RRT uses backward integration, simulating the parent node state in reverse
-                    to obtain reachable states and then given best reachable state setting respective u
-                    for the child node (so that it can be used forward in time).
         A           df/dx linearized dynamics wrt state.
         B           df/du linearized dyanmics wrt input.
         G           df/dw linearized dyanmics wrt uncertainty.
@@ -58,7 +65,6 @@ class RERRTNode(RRTNode):
 
     def __init__(self, x, parent=None, u=None, opts=None):
         super().__init__(x, parent, opts)
-        self.u = None
         self.A = None
         self.B = None
         self.G = None
@@ -103,12 +109,6 @@ class RERRTNode(RRTNode):
         Si  :nparray: (nx x nx)
         """
         self.S = Si
-
-    def setU(self, u):
-        """ Set control input for node.
-        u   :nparray: (nu x 1)
-        """
-        self.u = u
 
     def getJacobians(self, system):
         """Obtain linearized matrices for nonlinear system.

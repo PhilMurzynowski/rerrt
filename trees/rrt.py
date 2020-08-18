@@ -8,15 +8,17 @@ from trees.nodes import RRTNode
 
 from visuals.helper import printProgressBar
 
+
 class RRT:
     """
-    Base RRT class. Makes use of RRTNode class. Args: Desired start and goal,
-    typically provided as location not the full state, a System object to provide
-    the dynamics, an input object which has been configured for desired input
-    sampling, a Scene object used to organize the region and obstacles, and
-    remaining configurations options.
-
-
+    Class to grow tree. Makes use of RRTNode class.
+    start       :nparray: (nx x 1)      desired start of trajectory
+    goal        :nparray: (nx x 1)      desired end of trajectory
+    system      :System:                System object to provide dynamics
+    input       :Input:                 Input object configured for desired input
+                                        sampling
+    scene       :Scene:                 Scene object used to organized region and
+                                        obstacles
     Required options:
         min_dist
         max_iter
@@ -27,11 +29,16 @@ class RRT:
         sample_dim
         distanceMetric
 
+    To run tree growth call tree.treeExpansion where tree is an :RRT: instance.
+    Note: Update, currently can pass in multiple goals
     Note: Currently functional for 2D, in process of generalizing.
     """
 
 
     def __init__(self, start, goals, system, input_, scene, opts):
+        """Initalization, parameters descirbed above. Options (opts) passed in
+        to configure distanceMetric.
+        """
         self.start = start
         # multiple goals only currently used for backwards RRT
         self.goals = goals
@@ -126,7 +133,6 @@ class RRT:
         However, for nonlinear dynamics euclidean distance doesn't always make
         sense so the kd Tree would perhaps also be based off distanceMetric in
         some fashion.
-
         """
         # if system does not move on first timestep, will encounter error
         # will keep returning start node, as first in list
@@ -134,23 +140,37 @@ class RRT:
         closest_distance = np.Inf
         closest_node = None
         for i in range(L):
-            distance = self.distanceMetric(new_location, self.node_list[L-1-i].x)
+            idx = L-1-i
+            #idx = i
+            distance = self.distanceMetric(new_location, self.node_list[idx].x)
             if distance < closest_distance:
                 closest_distance = distance
-                closest_node = self.node_list[L-1-i]
+                closest_node = self.node_list[idx]
         if get_dist:
             return closest_node, closest_distance
         return closest_node
 
     def steer(self, from_node, to_location, opts):
-        """
-        multitimestep
+        """Function that is bulk of the extension operation, used after obtaining
+        a random sample and determining the nearest node to the sample. Simulates
+        the system from the nearest node (from_node) with multiple control
+        inputs for multiple timesteps, chooses the control input which results in
+        a state closest to the desired partial state (to_location) according to
+        distanceMetric, and returns nodes and input for that simulation. Possible
+        control inputs are configured by self.input which is an Input object
+        passed in to initalize RRT.
+        from_node       :RRTNode:           node to steer from
+        to_location     :nparray: (? x 1)   partial state
+        Required options:
+            extend_by
+            direction
         """
         best_u = None
         best_proximity = np.inf
         for k in range(self.input.numsamples):
             key, action = self.input.getAction(k)
             steered_to = self.system.simulate(from_node.x, action, opts['extend_by'], opts['direction'])
+            #plt.plot([from_node.x[0], steered_to[0]], [from_node.x[1], steered_to[1]])
             proximity = self.distanceMetric(to_location, steered_to)
             if proximity < best_proximity:
                 best_key, best_proximitiy = key, proximity
@@ -166,7 +186,7 @@ class RRT:
         """Extends the tree by sampling from within the valid region of space
         and steering the node that is closest to the random sample to determine
         how to grow the tree.
-        Returns new_nodes which will then be checked before being added to the
+        Returns new_nodes which will later be checked before being added to the
         tree, new_u is the control input used and can be recorded.
         """
         samp = self.sample(opts)
@@ -217,15 +237,20 @@ class RRT:
         best_start_node = None
         while best_dist > opts['min_dist'] and iter_step < opts['max_iter']:
             iter_step+=1
-            new_nodes, _ = self.extend(opts) # u not needed, so kept as _
+            new_nodes, new_u = self.extend(opts) # u not needed, so kept as _
             valid_extension = True
+            # checks if nodes in extension are in valid states
             for new_node in new_nodes:
                 if not self.validState(new_node.x):
                     valid_extension = False
                     break
+            # rejects node here
             if not valid_extension: continue
             self.node_list.extend(new_nodes)
             for new_node in new_nodes:
+                #print(new_node)
+                #print(new_node.x)
+                new_node.setU(new_u)
                 if opts['track_children']: new_node.parent.addChild(new_node)
                 new_dist = self.distToGoal(new_node.x[:2])
                 if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node

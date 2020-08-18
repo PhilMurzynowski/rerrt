@@ -159,6 +159,7 @@ class Input():
         n       :int:       number of sample to use
         """
         assert self.type == 'random'
+        assert n<= len(self.actions), 'Increase number of actions'
         self.numsamples = n
 
     def setActions(self, actions):
