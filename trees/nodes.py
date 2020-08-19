@@ -75,13 +75,15 @@ class RERRTNode(RRTNode):
         self.ellipse = None
         self.reachable = {}
 
-    def createEllipse(self):
+    def createEllipse(self, nx):
         """Create Ellipse object for node.
+        nx      :int:       dim of state
         """
         # let EE bet E^1/2
         # take first 2 dimensions and project. Note: update to support higher dimensions?
         EE = scipy.linalg.sqrtm(self.E)
-        A = np.array([[1, 0, 0, 0, 0], [0, 1, 0, 0, 0]])
+        A = np.zeros((2, nx))
+        A[0, 0], A[1, 1] = 1, 1
         EEw = np.linalg.pinv(A@EE)
         # last inversion below is to keep it in the xE^-1x < 1 format
         ellipse_projection = np.linalg.inv(EEw.T@EEw)
@@ -91,9 +93,10 @@ class RERRTNode(RRTNode):
         """Set function to set initial uncertainty in state or called during propagation.
         Automatically creates an associated Ellipse object for visualization and collision checking.
         Ei  :nparray: (nx x nx)
+
         """
         self.E = Ei
-        self.createEllipse()
+        self.createEllipse(Ei.shape[0])
 
     def setHi(self, Hi):
         """Set function to set initial uncertainty due to past uncertainty or called during propagation.

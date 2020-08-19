@@ -35,7 +35,6 @@ class RERRT(RRT):
         extend_by
         goal_sample_rate
         sample_dim
-        distanceMetric
         D
         E0
         Q   (if using TVLQR)
@@ -46,9 +45,15 @@ class RERRT(RRT):
     """
 
 
-    def __init__(self, start, goal, system, input_, scene, collision_func, opts):
-        super().__init__(start, goal, system, input_, scene, opts)
-        self.collision = collision_func
+    def __init__(self, start, goal, system, input_, scene, dist_func, collision_func):
+        super().__init__(start, goal, system, input_, scene, dist_func)
+        self.setCollisionFunc(collision_func)
+
+    def setCollisionFunc(self, func):
+        """Wrapper to set desired collision function
+        func    :function:      function to use for collision detection
+        """
+        self.collision = func
 
     def nodeCollision(self, node):
         """Checks whether ellipse of node is in collision with obstacles.
@@ -81,7 +86,7 @@ class RERRT(RRT):
         best_reach = None
         for i in range(L):
             for key, reach in self.node_list[L-1-i].reachable.items():
-                distance = self.distanceMetric(new_location, reach)
+                distance = self.distanceMetric(new_location, reach, self.system)
                 if distance < smallest_distance:
                     smallest_distance = distance
                     reaching_node = self.node_list[L-1-i]

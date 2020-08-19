@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from trees.nodes import RRTNode
+from utils.metrics import l2norm2D
 from visuals.helper import printProgressBar
 
 
@@ -19,6 +20,7 @@ class RRT:
                                         sampling
     scene       :Scene:                 Scene object used to organized region and
                                         obstacles
+    dist_func   :function:              Function to use as distance metric for state
     Required options:
         min_dist
         max_iter
@@ -27,14 +29,13 @@ class RRT:
         extend_by
         goal_sample_rate
         sample_dim
-        distanceMetric
 
     To run tree growth call tree.treeExpansion where tree is an :RRT: instance.
     Note: Currently functional for 2D, in process of generalizing.
     """
 
 
-    def __init__(self, start, goal, system, input_, scene, opts):
+    def __init__(self, start, goal, system, input_, scene, dist_func='default'):
         """Initalization, parameters descirbed above. Options (opts) passed in
         to configure distanceMetric.
         """
@@ -47,7 +48,7 @@ class RRT:
         self.obstacles = scene.obstacles
         self.poly = [self.region] + self.obstacles
         # default 
-        self.setDistanceMetric(opts)
+        self.setDistanceMetric(dist_func)
 
     def inObstacle(self, point):
         """Method to check if point is within any obstacle.
@@ -98,28 +99,23 @@ class RRT:
             rnd = self.goal[:opts['sample_dim'], :]
         return rnd
 
-    def euclidean2D(self, p1, p2):
-        """Calculate 2 dimensional euclidean distance between two points.
-        """
-        #p1_xy = p1[:2].reshape(2, 1) if p1.shape != (2, 1) else p2
-        #p2_xy = p2[:2].reshape(2, 1) if p2.shape != (2, 1) else p2
-        #return np.linalg.norm(p1_xy - p2_xy)
-        p1r = p1.reshape(-1, 1) if (p1.ndim == 1 or p1.shape != (-1, 1)) else p1
-        p2r = p2.reshape(-1, 1) if (p2.ndim == 1 or p2.shape[1] != 1) else p2
-        return np.sqrt((p1r[0, 0]-p2r[0, 0])**2+(p1r[1, 0]-p2r[1, 0])**2)
 
-    def setDistanceMetric(self, opts):
+    def setDistanceMetric(self, func):
         """Can implement different distance metrics for nonlinear systems.
-        Definied during initialization. Default is euclidean2D."""
-        if opts['distanceMetric'] is None:
-            self.distanceMetric = self.euclidean2D
+        Definied during initialization. Default is euclidean2D.
+        func    :function:      function to use as distance metric for states
+        """
+        if func == 'default':
+            self.distanceMetric = l2norm2D
+        else:
+            self.distanceMetric = func
 
 
     def distToGoal(self, p):
         """Distance from point p to goal using desired distanceMetric
         p       :nparray: (? x 1)       part of state
         """
-        return self.distanceMetric(p, self.goal)
+        return self.distanceMetric(p, self.goal, self.system)
 
 
     def nearestNode(self, new_location, get_dist=False):
@@ -138,7 +134,7 @@ class RRT:
         for i in range(L):
             idx = L-1-i
             #idx = i
-            distance = self.distanceMetric(new_location, self.node_list[idx].x)
+            distance = self.distanceMetric(new_location, self.node_list[idx].x, self.system)
             if distance < closest_distance:
                 closest_distance = distance
                 closest_node = self.node_list[idx]
@@ -167,7 +163,7 @@ class RRT:
             key, action = self.input.getAction(k)
             steered_to = self.system.simulate(from_node.x, action, opts['extend_by'], opts['direction'])
             #plt.plot([from_node.x[0], steered_to[0]], [from_node.x[1], steered_to[1]])
-            proximity = self.distanceMetric(to_location, steered_to)
+            proximity = self.distanceMetric(to_location, steered_to, self.system)
             if proximity < best_proximity:
                 best_key, best_proximitiy = key, proximity
         parent = from_node

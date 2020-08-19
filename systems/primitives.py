@@ -13,7 +13,7 @@ class System():
     nu      :int:       dimension of input
     nw      :int:       dimension of uncertainty
     Can provide dynamics by creating a subclass with required dynamics.
-    Car Class example provided below.
+    Car Class example provided in examples.
     """
 
     def __init__(self, sys_config):
