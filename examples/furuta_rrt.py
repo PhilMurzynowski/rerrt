@@ -26,8 +26,8 @@ region = Rectangle([-2*np.pi, -2*np.pi], 4*np.pi, 4*np.pi)
 # goal_state used for backward expansion as start
 # currently RRT does not require both starting state and ending state to belong to final tree
 # one must be the root of tree and returns solution closest to other desired state
-start_state = np.array(start + [-np.pi*2/3, 5, 0]).reshape(5, 1)
-goal_state = np.array(goal + [-np.pi*2/3, 5, 0])
+start_state = np.array(start + [0, 0]).reshape(4, 1)
+goal_state = np.array(goal + [0, 0]).reshape(4, 1)
 
 # initialize obstacles
 # no obstacles currently
