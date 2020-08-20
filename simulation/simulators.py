@@ -1,16 +1,25 @@
 """
 Simulators.
+Note: May be a better idea to generalize simulator for different tree types.
+      Currently have different types, RRTSimulator and RERRTSimulator.
+Note: Simulators may overwrite data for RRT, i.e. assigning S, K values to nodes.
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
+
+from visuals.helper import printProgressBar
 
 
 class RRTSimulator():
+    """Note: Create a separate simulator object for each tree.
+    """
 
 
-    def __init__(self, tree, system):
+    def __init__(self, tree, opts):
         self.tree = tree
-        self.system = system
+        self.system = tree.system
+        self.opts = opts
 
     def simulateTrajectory(self, trajectory, quick_check=False):
         """Given trajectory of nodes with computed us (inputs) and Ks (feedback),
@@ -33,8 +42,9 @@ class RRTSimulator():
         if quick_check:
             valid = True
             x = trajectory[0].x
-            for i in range(0, N):
-                u = trajectory[i].u+trajectory[i].K@(x-trajectory[:,i])
+            for i in range(0, N-1):
+                print(f'0?: {x-trajectory[i].x}')
+                u = trajectory[i].u+trajectory[i].K@(x-trajectory[i].x)
                 w = self.sampleUncertainty()
                 x = self.system.nextState(x, u, w)
                 if not self.tree.validState(x):
@@ -43,11 +53,11 @@ class RRTSimulator():
             return valid
         else:
             simulated = np.zeros((self.system.nx, N))
-            simulated[:, 0] = trajectory[0].x
+            simulated[:, 0:1] = trajectory[0].x
             for i in range(0, N-1):
-                u = trajectory[i].u+trajectory[i].K@(simulated[:,i]-trajectory[:,i])
+                u = trajectory[i].u+trajectory[i].K@(simulated[:,i:i+1]-trajectory[i].x)
                 w = self.sampleUncertainty()
-                simulated[:, i+1] = self.system.nextState(simulated[:, i], u, w)
+                simulated[:, i+1:i+2] = self.system.nextState(simulated[:, i:i+1], u, w)
             return simulated
 
     def sampleUncertainty(self):
@@ -59,9 +69,10 @@ class RRTSimulator():
 
     def sampleEllipsoid(self):
         # must implement
-        return np.array([[0], [0]])
+        # will use D from opts
+        return np.zeros((self.system.nw, 1))
 
-    def assessTrajectory(self, trajectory, num_simulations):
+    def assessTrajectory(self, trajectory, num_simulations, percentage=True):
         """Assess the robustness of the trajectory via Monte Carlo, no longer
         assuming uncertainty values of 0, sampling and simulating forward.
         After simulating the trajectory, robustness is determined as a percentage
@@ -70,13 +81,55 @@ class RRTSimulator():
         trajectory      [:RRTNode:, ]       trajectory, list/tuple of nodes
                                             each with u and K
         num_simulations :int:               number of simulations to run
-        Returns :float: percentage of valid trajectories.
+        percentage      :bool:              whether to return percentage valid
+                                            or simply number of valid
+        Returns :float: percentage of valid trajectories or number of valid
+        trajectories.
         """
         num_valid = 0
         for i in range(num_simulations):
             valid = self.simulateTrajectory(trajectory, quick_check=True)
             if valid: num_valid += 1
-        return num_valid/num_simulations
+        if percentage: return num_valid/num_simulations
+        return num_valid
+
+    def assessTree(self, traj_resolution):
+        """Note: currently only for backward RRT.
+        traj_resolution     :int:       num of simulations per trajectory
+        """
+        num_valid = 0
+        n = 0
+        self.tree.start.setSi(np.zeros((self.system.nx, self.system.nx)))
+        rrt_tips = self.tree.getTipNodes(gen=False)
+        num_traj = len(rrt_tips)
+        num_sim = num_traj*traj_resolution
+        plt.figure() # debugging
+        for startnode in rrt_tips:
+            # calc TVLQR, should put into method
+            # using same Q and R as rerrt
+            # likely slow due to getPath
+            path = self.tree.getPath(startnode, reverse=False)
+            N = len(path)
+            # x, u already provided from tree growth
+            for i in range(N-1):
+                path[i].getJacobians(self.system)
+            for i in range(N-1, 0, -1):
+                path[i-1].calcSi(self.opts['Q'], self.opts['R'], path[i])
+            for i in range(N-1):
+                path[i].calcKi(self.opts['R'], path[i+1])
+            num_valid += self.assessTrajectory(path, traj_resolution, False)
+            n+=traj_resolution
+
+            # debugging
+            simulated = self.simulateTrajectory(path, quick_check=False)
+            print(simulated[0, :])
+            print(simulated[1, :])
+            plt.plot(simulated[0, :], simulated[1, :])
+
+            printProgressBar('Simulations complete', n, num_sim)
+            printProgressBar('| Current % valid', num_valid, n, writeover=False)
+
+        plt.draw()
 
     # may be unnecessary
     #def trajectoryStats(self, trajectory, num_simulations=1):
@@ -120,3 +173,9 @@ class RERRTSimulator(RRTSimulator):
         """Assess whether trajectory staying within ellipsoids
         """
         pass
+
+    def assessTree(self, num_simulations):
+        """Note: currently only for backward RRT.
+        """
+        for startnode in self.tree.getTipNodes():
+           pass

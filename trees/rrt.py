@@ -271,7 +271,10 @@ class RRT:
         final = self.nearestNode(self.goal)
         return self.getPath(final)
 
-    def getTipNodes(self):
-        """Returns the nodes at the very tips of the tree, i.e. nodes with no children.
+    def getTipNodes(self, gen=True):
+        """Returns the nodes at the very tips of the tree, i.e. nodes with no
+        children.
+        gen     :bool:      whether to use generators
         """
-        return  (n for n in self.node_list if len(n.children)==0)
+        if gen: return  (n for n in self.node_list if len(n.children)==0)
+        return  [n for n in self.node_list if len(n.children)==0]

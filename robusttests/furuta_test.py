@@ -13,6 +13,7 @@ from utils.metrics import l2norm2D, furutaDistanceMetric
 from utils.collision import CollisionDetection
 from systems.primitives import Input
 from systems.examples import Furuta
+from simulation.simulators import RRTSimulator, RERRTSimulator
 from visuals.helper import pickRandomColor
 from visuals.plotting import (Scene, drawScene, drawTree, drawPath,
                               drawReachable, drawEllipsoids, drawEllipsoidTree)
@@ -61,16 +62,6 @@ rrt_tree = RRT(start=start_state,
            input_=rrt_input,
            scene=scene,
            dist_func=dist_metric)
-rrt_options = {
-    'min_dist':         1e-1,
-    'max_iter':         50,
-    'direction':        'backward',
-    'track_children':   True,
-    'extend_by':        20,
-    'goal_sample_rate': 0.20,
-    'sample_dim':       2,
-}
-
 # rerrt setup
 rerrt_input = Input(dim=sys_opts['nu'], type_='deterministic')
 rerrt_input.setLimits(np.array([10, 0]))
@@ -82,9 +73,10 @@ rerrt_tree = RERRT(start=start_state,
              scene=scene,
              dist_func=dist_metric,
              collision_func=collision_function)
-rerrt_options = {
+# use same options for both, RERRT will use all
+options = {
     'min_dist':         1e-1,                             # :float:                       min dist to goal
-    'max_iter':         50,                            # :int:                         iterations
+    'max_iter':         10,                            # :int:                         iterations
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
     'track_children':   True,                           # :bool:                        keep record of children of node
     'extend_by':        20,                             # :int:                         num timesteps to simulate in steer function with each extension
@@ -98,7 +90,7 @@ rerrt_options = {
 
 # run rrt
 print('\nRRT Expanding...')
-rrt_tree.treeExpansion(rrt_options)
+rrt_tree.treeExpansion(options)
 print('\nPlotting...')
 rrt_final_path = rrt_tree.finalPath()
 drawScene(scene, size=(15, 15))
@@ -114,7 +106,7 @@ plt.pause(0.001)    # hack to show plots realtime
 
 # run rerrt
 print('RERRT Expanding...')
-rerrt_tree.treeExpansion(rerrt_options)
+rerrt_tree.treeExpansion(options)
 print('\nPlotting...')
 rerrt_final_path = rerrt_tree.finalPath()
 drawScene(scene, size=(15, 15))
@@ -124,32 +116,22 @@ plt.title('Note: Positions are modulo 2pi',fontsize=16)
 plt.suptitle('Furuta RERRT',fontsize=25, y=0.925)
 drawTree(rerrt_tree, color='blue')
 drawPath(rerrt_final_path, color='red')
-drawEllipsoidTree(rerrt_tree, rerrt_options)
+drawEllipsoidTree(rerrt_tree, options)
 print('Finished\n')
 plt.draw()
 plt.pause(0.001)
 
 print('Comparing Robustness...')
-# this only valid if both trees grown backwards
-# can organize this into class methods
-rrt_tree.start.setSi(np.zeros((sys.nx, sys.nx)))
-rrt_tips = rrt_tree.getTipNodes()
-for startnode in rrt_tips:
-    # calc TVLQR
-    # using same Q and R as rerrt
-    # likely slow due to getPath
-    path = rrt_tree.getPath(startnode, reverse=False)
-    N = len(path)
-    # x, u already provided from tree growth
-    for i in range(N-1):
-        path[i].getJacobians(sys)
-    for i in range(N-1, 0, -1):
-        path[i-1].calcSi(rerrt_options['Q'], rerrt_options['R'], path[i])
-    for i in range(N-1):
-        path[i].calcKi(rerrt_options['R'], path[i+1])
-
-#rerrt_tips = rerrt_tree.getTipNodes()
-
-
-print('Finished\n')
+# ok to use options if parameters the same, hacky for now
+sim1 = RRTSimulator(tree=rrt_tree,
+                    opts=options)
+sim2 = RERRTSimulator(tree=rerrt_tree,
+                      opts=options)
+# number of simulations for each trajectory in tree
+num_simulations=10
+print('Simulating RRT...')
+sim1.assessTree(num_simulations)
+#print('Simulating RERRT...')
+#sim2.assessTree(num_simulations)
+print('\nFinished\n')
 plt.show()
