@@ -264,7 +264,6 @@ class RRT:
         if reverse: path = path[::-1]
         return path
 
-
     def finalPath(self):
         """Determines which node is closest to the goal by distanceMetric and
         then returns the path to that node.
@@ -272,5 +271,7 @@ class RRT:
         final = self.nearestNode(self.goal)
         return self.getPath(final)
 
-
-
+    def getTipNodes(self):
+        """Returns the nodes at the very tips of the tree, i.e. nodes with no children.
+        """
+        return  (n for n in self.node_list if len(n.children)==0)

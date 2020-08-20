@@ -146,7 +146,7 @@ def drawEllipsoidTree(tree, opts):
     if not opts['track_children']:
         raise RuntimeError('Enable track_children')
     if opts['direction'] == 'backward':
-        startnodes = (n for n in tree.node_list if len(n.children)==0)
+        startnodes = tree.getTipNodes()
         for startnode in startnodes:
             robust = tree.robustnessCheck(startnode, opts)
             assert robust, 'BUG'

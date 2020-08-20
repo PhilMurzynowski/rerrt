@@ -29,7 +29,7 @@ region = Rectangle([-5, -5], 20, 20)
 # currently RRT does not require both starting state and ending state to belong to final tree
 # one must be the root of tree and returns solution closest to other desired state
 start_state = np.array(start + [-np.pi*2/3, 5, 0]).reshape(5, 1)
-goal_state = np.array(goal + [-np.pi*2/3, 5, 0])
+goal_state = np.array(goal + [-np.pi*2/3, 5, 0]).reshape(5, 1)
 
 # initialize obstacles
 obstacles = []
