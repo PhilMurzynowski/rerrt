@@ -65,7 +65,7 @@ rrt_options = {
     'min_dist':         1e-1,
     'max_iter':         50,
     'direction':        'backward',
-    'track_children':   False,
+    'track_children':   True,
     'extend_by':        20,
     'goal_sample_rate': 0.20,
     'sample_dim':       2,
@@ -94,9 +94,6 @@ rerrt_options = {
     'E0':               0.10*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
     'Q':                np.diag((5, 5, 0, 0)),       # :nparray: (nx x nx)           TVLQR Q
     'R':                np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           TVLQR R
-    'Ql':               np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           use if robust cost from DIRTREL paper added
-    'Rl':               np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           see above
-    'QlN':              np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           see above
 }
 
 # run rrt
@@ -112,10 +109,11 @@ plt.suptitle('Furuta RRT',fontsize=25, y=0.925)
 drawTree(rrt_tree, color='blue')
 drawPath(rrt_final_path, color='red')
 print('Finished\n')
-#plt.show()
+plt.draw()
+plt.pause(0.001)    # hack to show plots realtime
 
 # run rerrt
-print('\nRERRT Expanding...')
+print('RERRT Expanding...')
 rerrt_tree.treeExpansion(rerrt_options)
 print('\nPlotting...')
 rerrt_final_path = rerrt_tree.finalPath()
@@ -128,7 +126,32 @@ drawTree(rerrt_tree, color='blue')
 drawPath(rerrt_final_path, color='red')
 drawEllipsoidTree(rerrt_tree, rerrt_options)
 print('Finished\n')
+plt.draw()
+plt.pause(0.001)
 
+print('Comparing Robustness...')
+# this only valid if both trees grown backwards
+# can organize this into class methods
+rrt_tree.start.setSi(np.zeros((sys.nx, sys.nx)))
+rrt_tips = rrt_tree.getTipNodes()
+for startnode in rrt_tips:
+    # calc TVLQR
+    # using same Q and R as rerrt
+    # likely slow due to getPath
+    path = rrt_tree.getPath(startnode, reverse=False)
+    N = len(path)
+    # x, u already provided from tree growth
+    for i in range(N-1):
+        path[i].getJacobians(sys)
+    for i in range(N-1, 0, -1):
+        path[i-1].calcSi(rerrt_options['Q'], rerrt_options['R'], path[i])
+    for i in range(N-1):
+        path[i].calcKi(rerrt_options['R'], path[i+1])
+    # pass sequence of nodes into simulation
+    # add simulator here`
+
+#rerrt_tips = rerrt_tree.getTipNodes()
+
+
+print('Finished\n')
 plt.show()
-
-
