@@ -147,8 +147,6 @@ for startnode in rrt_tips:
         path[i-1].calcSi(rerrt_options['Q'], rerrt_options['R'], path[i])
     for i in range(N-1):
         path[i].calcKi(rerrt_options['R'], path[i+1])
-    # pass sequence of nodes into simulation
-    # add simulator here`
 
 #rerrt_tips = rerrt_tree.getTipNodes()
 
