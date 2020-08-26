@@ -56,8 +56,8 @@ collision_function = col.selectCollisionChecker('erHalfMtxPts')
 
 # rrt setup
 rrt_input = Input(dim=sys_opts['nu'], type_='random')
-rrt_input.setLimits(np.array([1, 0]))
-rrt_input.determinePossibleActions(resolutions=np.array([10, 1]))
+rrt_input.setLimits(np.array([[10, 0]]).T)
+rrt_input.determinePossibleActions(range_=0.1, resolutions=np.array([10, 1]))
 rrt_input.setNumSamples(3)
 rrt_tree = RRT(start=start_state,
            goal=goal_state,
@@ -67,8 +67,8 @@ rrt_tree = RRT(start=start_state,
            dist_func=dist_metric)
 # rerrt setup
 rerrt_input = Input(dim=sys_opts['nu'], type_='deterministic')
-rerrt_input.setLimits(np.array([1, 0]))
-rerrt_input.determinePossibleActions(resolutions=np.array([3, 1]))
+rerrt_input.setLimits(np.array([[10, 0]]).T)
+rerrt_input.determinePossibleActions(range_=0.1, resolutions=np.array([3, 1]))
 rerrt_tree = RERRT(start=start_state,
              goal=goal_state,
              system=sys,
@@ -78,8 +78,8 @@ rerrt_tree = RERRT(start=start_state,
              collision_func=collision_function)
 # use same options for both, RERRT will use all
 options = {
-    'min_dist':         1,                             # :float:                       min dist to goal
-    'max_iter':         400,                            # :int:                         iterations
+    'min_dist':         1e-1,                           # :float:                       min dist to goal
+    'max_iter':         100,                             # :int:                         iterations
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
     'track_children':   True,                           # :bool:                        keep record of children of node
     'extend_by':        20,                             # :int:                         num timesteps to simulate in steer function with each extension
@@ -89,7 +89,7 @@ options = {
     'E0':               0.10*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
     'max_dims':         np.array([5, 5]),               # :nparray: (2,)                maximum axis length of ellipse in each dimension
                                                         #                               currently only 2D supported
-    'Q':                np.diag((10, 10, 5, 5)),       # :nparray: (nx x nx)           TVLQR Q
+    'Q':                10*np.diag((1, 1, 0.5, 0.5)),   # :nparray: (nx x nx)           TVLQR Q
     'R':                np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           TVLQR R
 }
 

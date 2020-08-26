@@ -73,8 +73,8 @@ sys = Furuta(sys_opts)
 # will attempt to add exact same trajectory as already exists
 #   can really see the usefulness of RGRRT trying to tune this
 input_ = Input(dim=sys_opts['nu'], type_='random')
-input_.setLimits(np.array([10, 0]))
-input_.determinePossibleActions(resolutions=np.array([10, 1]))
+input_.setLimits(np.array([[2, 0]]).T)
+input_.determinePossibleActions(range_=0.50, resolutions=np.array([10, 1]))
 input_.setNumSamples(3)
 
 #   setLimits          args     :nparray: (dim(input),)         max magnitude of each input

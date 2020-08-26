@@ -123,7 +123,13 @@ class Input():
             self.determinePossibleActions(2*np.ones(dim))
 
     def setLimits(self, limits):
-        assert limits.size == self.dim
+        """Set limits of input, i.e. values for which input must not exceed.
+        Limits set as - and + for each value provided e.g.
+        limits = np.array([[2, 1]]).T limits will be -2, 2 and -1, 1
+        Enforced in simulation by clipping.
+        limits      :nparray: (nu x 1)      values for limits
+        """
+        assert limits.shape == (self.dim, 1)
         self.limits = limits
 
     def setType(self, type_):
@@ -149,16 +155,20 @@ class Input():
         """
         self.actions = actions
 
-    def determinePossibleActions(self, resolutions):
+    def determinePossibleActions(self, range_, resolutions):
         """Once limits have been set, pass in resolution at which to generate
-        possible actions. Higher resolutions will result in more action combinations.
+        possible actions. Higher resolutions will result in more action
+        combinations. Range is a fraction for close to approach limits.
         e.g.
             For a 1d input, passing in resolutions=np.array([5])
-            will result in 5 different actions between -limit and limit.
+            will result in 5 different actions between -range_*limit and
+            range_*limit.
             For a 2d input, passing in resolutions=np.array([3, 2])
             will create 6 different action combinations, again sampling
-            between -limit and limit for each dimension
+            between -range_*limit and range_*limit for each dimension
             limits are described in self.limits
+        range           :float:     how close to approach limit
+                                    i.e. 0.9 is 90 percent of limit
         resolutions     :nparray:   (nu,)
         """
         assert resolutions.size == self.dim
@@ -166,7 +176,7 @@ class Input():
         actions = np.zeros((num_combinations, self.dim, 1))
         for idx, r in enumerate(resolutions):
             repeat = int(num_combinations/r)
-            tmp = np.tile(np.linspace(-self.limits[idx], self.limits[idx], r), repeat).reshape(num_combinations, 1)
+            tmp = np.tile(np.linspace(range_*-self.limits[idx, 0], range_*self.limits[idx, 0], r), repeat).reshape(num_combinations, 1)
             actions[:, idx, :] = tmp
         self.setActions(actions)
         if self.type == 'deterministic': self.numsamples = num_combinations

@@ -57,8 +57,8 @@ sys = Car(sys_opts)
 
 # named input_ to avoid conflict with python keyword input
 input_ = Input(dim=sys_opts['nu'], type_='deterministic')
-input_.setLimits(np.array([10, 10]))
-input_.determinePossibleActions(resolutions=np.array([2, 3]))
+input_.setLimits(np.array(np.array([[10, 10]]).T))
+input_.determinePossibleActions(range_=0.5, resolutions=np.array([2, 3]))
 
 #   setLimits          args     :nparray: (dim(input),)         max magnitude of each input
 #   setType            args     :'random'/'deterministic':      input sampling type, often abbrv. input type 

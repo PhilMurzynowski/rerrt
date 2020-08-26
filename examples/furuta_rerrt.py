@@ -72,8 +72,8 @@ sys = Furuta(sys_opts)
 # named input_ to avoid conflict with python keyword input
 input_ = Input(dim=sys_opts['nu'], type_='deterministic')
 # no motor at second joint, making underactuated
-input_.setLimits(np.array([10, 0]))
-input_.determinePossibleActions(resolutions=np.array([3, 1]))
+input_.setLimits(np.array([[2, 0]]).T)
+input_.determinePossibleActions(range_=0.50, resolutions=np.array([3, 1]))
 
 #   setLimits          args     :nparray: (dim(input),)         max magnitude of each input
 #   setType            args     :'random'/'deterministic':      input sampling type, often abbrv. input type 

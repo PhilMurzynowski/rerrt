@@ -57,8 +57,8 @@ sys = Car(sys_opts)
 # will attempt to add exact same trajectory as already exists
 #   can really see the usefulness of RGRRT trying to tune this
 input_ = Input(dim=sys_opts['nu'], type_='random')
-input_.setLimits(np.array([5, 5]))
-input_.determinePossibleActions(resolutions=np.array([5, 5]))
+input_.setLimits(np.array(np.array([[10, 10]]).T))
+input_.determinePossibleActions(range_=0.5, resolutions=np.array([5, 5]))
 input_.setNumSamples(10)
 
 #   setLimits          args     :nparray: (dim(input),)         max magnitude of each input
