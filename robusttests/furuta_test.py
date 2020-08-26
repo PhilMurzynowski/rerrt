@@ -28,6 +28,9 @@ obstacles = []
 scene = Scene(start, goal, region, obstacles)
 
 # system setup
+# Note: a small timestep appears to be necessary for this system
+# as otherwise error blows up when switching from backward
+# to forward integration
 sys_opts = {
     'dt': 0.005,
     'nx': 4,
@@ -53,7 +56,7 @@ collision_function = col.selectCollisionChecker('erHalfMtxPts')
 
 # rrt setup
 rrt_input = Input(dim=sys_opts['nu'], type_='random')
-rrt_input.setLimits(np.array([10, 0]))
+rrt_input.setLimits(np.array([1, 0]))
 rrt_input.determinePossibleActions(resolutions=np.array([10, 1]))
 rrt_input.setNumSamples(3)
 rrt_tree = RRT(start=start_state,
@@ -64,7 +67,7 @@ rrt_tree = RRT(start=start_state,
            dist_func=dist_metric)
 # rerrt setup
 rerrt_input = Input(dim=sys_opts['nu'], type_='deterministic')
-rerrt_input.setLimits(np.array([10, 0]))
+rerrt_input.setLimits(np.array([1, 0]))
 rerrt_input.determinePossibleActions(resolutions=np.array([3, 1]))
 rerrt_tree = RERRT(start=start_state,
              goal=goal_state,
@@ -75,8 +78,8 @@ rerrt_tree = RERRT(start=start_state,
              collision_func=collision_function)
 # use same options for both, RERRT will use all
 options = {
-    'min_dist':         1e-1,                             # :float:                       min dist to goal
-    'max_iter':         10,                            # :int:                         iterations
+    'min_dist':         1,                             # :float:                       min dist to goal
+    'max_iter':         400,                            # :int:                         iterations
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
     'track_children':   True,                           # :bool:                        keep record of children of node
     'extend_by':        20,                             # :int:                         num timesteps to simulate in steer function with each extension
@@ -84,7 +87,9 @@ options = {
     'sample_dim':       2,                              # :int:                         Determine how many dimensions to sample in, e.g. 2 for 2D
     'D':                0.10*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
     'E0':               0.10*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
-    'Q':                np.diag((5, 5, 0, 0)),       # :nparray: (nx x nx)           TVLQR Q
+    'max_dims':         np.array([5, 5]),               # :nparray: (2,)                maximum axis length of ellipse in each dimension
+                                                        #                               currently only 2D supported
+    'Q':                np.diag((10, 10, 5, 5)),       # :nparray: (nx x nx)           TVLQR Q
     'R':                np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           TVLQR R
 }
 

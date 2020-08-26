@@ -43,8 +43,8 @@ class RRTSimulator():
             valid = True
             x = trajectory[0].x
             for i in range(0, N-1):
-                print(f'0?: {x-trajectory[i].x}')
-                u = trajectory[i].u+trajectory[i].K@(x-trajectory[i].x)
+                #print(f'0?: {x-trajectory[i].x}')
+                u = trajectory[i].u+trajectory[i].K@(trajectory[i].x-x)
                 w = self.sampleUncertainty()
                 x = self.system.nextState(x, u, w)
                 if not self.tree.validState(x):
@@ -55,7 +55,8 @@ class RRTSimulator():
             simulated = np.zeros((self.system.nx, N))
             simulated[:, 0:1] = trajectory[0].x
             for i in range(0, N-1):
-                u = trajectory[i].u+trajectory[i].K@(simulated[:,i:i+1]-trajectory[i].x)
+                print(f'0?: {trajectory[i].x-simulated[:, i:i+1]}')
+                u = trajectory[i].u+trajectory[i].K@(trajectory[i].x-simulated[:,i:i+1])
                 w = self.sampleUncertainty()
                 simulated[:, i+1:i+2] = self.system.nextState(simulated[:, i:i+1], u, w)
             return simulated
@@ -111,21 +112,26 @@ class RRTSimulator():
             path = self.tree.getPath(startnode, reverse=False)
             N = len(path)
             # x, u already provided from tree growth
+            print('getting Jacobians')
             for i in range(N-1):
                 path[i].getJacobians(self.system)
+            print('calc Si')
             for i in range(N-1, 0, -1):
                 path[i-1].calcSi(self.opts['Q'], self.opts['R'], path[i])
+            print('calc K')
             for i in range(N-1):
                 path[i].calcKi(self.opts['R'], path[i+1])
+            print('assess traj')
             num_valid += self.assessTrajectory(path, traj_resolution, False)
             n+=traj_resolution
 
             # debugging
+            print('simulating')
             simulated = self.simulateTrajectory(path, quick_check=False)
-            print(simulated[0, :])
-            print(simulated[1, :])
+            print('comparing')
+            #print([n.x for n in path])
+            #print(simulated)
             plt.plot(simulated[0, :], simulated[1, :])
-
             printProgressBar('Simulations complete', n, num_sim)
             printProgressBar('| Current % valid', num_valid, n, writeover=False)
 

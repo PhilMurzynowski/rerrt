@@ -37,6 +37,7 @@ class RERRT(RRT):
         sample_dim
         D
         E0
+        max_dims
         Q   (if using TVLQR)
         R   (if using TVLQR)
 
@@ -277,8 +278,22 @@ class RERRT(RRT):
             while node.parent is not None:
                 node.propogateEllipse(opts['D'], node.parent)
                 if self.nodeCollision(node.parent): return False
+                if not self.sizeCheck(node.parent, opts): return False
                 node = node.parent
             return True
+
+    def sizeCheck(self, node, opts):
+        """Checks if ellipse for provided node passes the requried size specifications.
+        node        :RERRTNode:     node to check size of
+        Required opts:
+            max_dims
+        Returns true if passes desired specifications.
+        Note: remove convertFromMatrix call here later to remove redundancy
+        """
+        node.ellipse.convertFromMatrix()
+        if node.ellipse.w > opts['max_dims'][0]: return False
+        if node.ellipse.h > opts['max_dims'][1]: return False
+        return True
 
     def calcEllipsesGivenEndNode(self, endnode, opts):
         """Note: Currently not in use, inefficient to create path [a list].

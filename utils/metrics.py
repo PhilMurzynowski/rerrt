@@ -9,6 +9,7 @@ Distance Metrics
 Different possible metrics for computing how 'close' two states are.
 """
 
+# should clean up 2D and ND with decorator to pick dimension
 def l2norm2D(state1, state2, system=None):
     """Calculate 2 dimensional l2 norm between two states. Uses first
     two states if dimension of state is greater than 2.
@@ -25,6 +26,14 @@ def l2norm2D(state1, state2, system=None):
     p1r = p1.reshape(-1, 1) if (p1.ndim == 1 or p1.shape != (-1, 1)) else p1
     p2r = p2.reshape(-1, 1) if (p2.ndim == 1 or p2.shape[1] != 1) else p2
     return np.sqrt((p1r[0, 0]-p2r[0, 0])**2+(p1r[1, 0]-p2r[1, 0])**2)
+
+def l2normND(state1, state2, system=None):
+    """Calculate N dimensional l2 norm between two states.
+    state1      :nparray: (nx x 1)      state one
+    state2      :nparray: (nx x 1)      state two
+    Not dependent on system
+    """
+    return np.linalg.norm(state1 - state2)
 
 def furutaDistanceMetric(state1, state2, system):
     """Basic alternative distance metric designed for the furuta pendulum.

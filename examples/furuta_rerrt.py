@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from trees.rrt import RRT
 from trees.rerrt import RERRT
 from utils.shapes import Rectangle, Ellipse
-from utils.metrics import l2norm2D, furutaDistanceMetric
+from utils.metrics import l2norm2D, l2normND, furutaDistanceMetric
 from utils.collision import CollisionDetection
 from systems.primitives import Input
 from systems.examples import Furuta
@@ -22,7 +22,7 @@ from visuals.plotting import (Scene, drawScene, drawTree, drawPath,
 # Initialize start, goal, bounds on area
 start = [np.pi, 0]
 goal = [0, np.pi]
-region = Rectangle([-2*np.pi, -2*np.pi], 4*np.pi, 4*np.pi)
+region = Rectangle([-2*np.pi, -2*np.pi], 6*np.pi, 6*np.pi)
 
 # start_state used for forward expansion as start
 # goal_state used for backward expansion as start
@@ -101,7 +101,7 @@ tree = RERRT(start=start_state,
 # options to configure RERRT initialization and expansion
 run_options = {
     'min_dist':         1e-1,                             # :float:                       min dist to goal
-    'max_iter':         50,                            # :int:                         iterations
+    'max_iter':         400,                            # :int:                         iterations
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
     'track_children':   True,                           # :bool:                        keep record of children of node
     'extend_by':        20,                             # :int:                         num timesteps to simulate in steer function with each extension
@@ -109,11 +109,10 @@ run_options = {
     'sample_dim':       2,                              # :int:                         Determine how many dimensions to sample in, e.g. 2 for 2D
     'D':                0.10*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
     'E0':               0.10*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
-    'Q':                np.diag((5, 5, 0, 0)),       # :nparray: (nx x nx)           TVLQR Q
+    'max_dims':         np.array([5, 5]),               # :nparray: (2,)                maximum axis length of ellipse in each dimension
+                                                        #                               currently only 2D supported
+    'Q':                np.diag((10, 10, 5, 5)),        # :nparray: (nx x nx)           TVLQR Q
     'R':                np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           TVLQR R
-    'Ql':               np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           use if robust cost from DIRTREL paper added
-    'Rl':               np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           see above
-    'QlN':              np.eye(sys_opts['nx']),         # :nparray: (nx x nx)           see above
 }
 
 print('\nTree Expanding...')
