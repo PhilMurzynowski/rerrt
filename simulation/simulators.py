@@ -22,7 +22,18 @@ class RRTSimulator():
         self.input = tree.input
         self.opts = opts
 
-    def simulateTrajectory(self, trajectory, quick_check=False):
+    def withinGoalEpsilon(self, state, goal_epsilon):
+        """Checks whether state is within epsilon of the goal according to
+        distanceMetric specified for the tree. Reminder that for backward
+        RRT the goal is in fact the 'start', as it is where the tree begins
+        growth from.
+        Note: Currently only for backward RRT.
+        """
+        if self.tree.distanceMetric(state, self.tree.start.x, self.system) <= goal_epsilon:
+            return True
+        return False
+
+    def simulateTrajectory(self, trajectory, goal_epsilon, quick_check=False):
         """Given trajectory of nodes with computed us (inputs) and Ks (feedback),
         if quick_check is enabled, simply runs the simulation and returns a bool
         to determine whether the trajectory is valid. If quick_check is disabled,
@@ -36,11 +47,13 @@ class RRTSimulator():
         Note: Can pass in section of trajectory (subtrajectory) if desired.
         trajectory      [:RRTNode:, ]       trajectory, list/tuple of nodes
                                             each with u and K
+        goal_epsilon    :float:             epsilon to use
         quick_check     :bool:              determine whether to quickly check
                                             simulated trajectory or return copy
         """
         N = len(trajectory)
         valid = True
+        reach_dest = False
         if quick_check:
             x = trajectory[0].x
             for i in range(0, N-1):
@@ -51,8 +64,12 @@ class RRTSimulator():
                 x = self.system.nextState(x, u, w)
                 if not self.tree.validState(x):
                     valid = False
-                    return valid
-            return valid
+                    return valid, reach_dest
+                # check if reaching goal within final two extensions
+                if i >= N-2*self.opts['extend_by']:
+                    if self.withinGoalEpsilon(x, goal_epsilon):
+                        reach_dest = True
+            return valid, reach_dest
         else:
             simulated = np.zeros((self.system.nx, N))
             simulated[:, 0:1] = trajectory[0].x
@@ -64,7 +81,11 @@ class RRTSimulator():
                 simulated[:, i+1:i+2] = self.system.nextState(simulated[:, i:i+1], u, w)
                 if not self.tree.validState(simulated[:, i+1:i+2]):
                     valid = False
-            return simulated, valid
+                # check if reaching goal within final two extensions
+                if i >= N-2*self.opts['extend_by']:
+                    if self.withinGoalEpsilon(simulated[:, i+1:i+2], goal_epsilon):
+                        reach_dest = True
+            return simulated, valid, reach_dest
 
     def sampleUncertainty(self):
         # initially will just call sampleEllipsoid
@@ -79,50 +100,56 @@ class RRTSimulator():
         return np.zeros((self.system.nw, 1))
 
     def assessTrajectory(self, trajectory, num_simulations,
-                         visualize, percentage=True):
+                         goal_epsilon, visualize, percentage=True):
         """Assess the robustness of the trajectory via Monte Carlo, no longer
         assuming uncertainty values of 0, sampling and simulating forward.
         After simulating the trajectory, robustness is determined as a percentage
         of trajectories with all valid states i.e. in valid region, no obstacle
         collisions, etc.
-        trajectory      [:RRTNode:, ]       trajectory, list/tuple of nodes
-                                            each with u and K
-        num_simulations :int:               number of simulations to run
-        percentage      :bool:              whether to return percentage valid
-                                            or simply number of valid
-        visualize           :bool:      whether to plot the simulated trajectories
+        trajectory      [:RRTNode:, ]  trajectory, list/tuple of nodes
+                                       each with u and K
+        num_simulations :int:          number of simulations to run
+        goal_epsilon    :float:        epsilon to use
+        percentage      :bool:         whether to return percentage valid
+                                       or simply number of valid
+        visualize       :bool:         whether to plot the simulated trajectories
         Note: Ideally visualizations would be moved out to separate functions
         Returns :float: percentage of valid trajectories or number of valid
         trajectories.
         """
         num_valid = 0
+        num_reach_dest = 0
         for i in range(num_simulations):
             if not visualize:
-                valid = self.simulateTrajectory(trajectory, quick_check=True)
+                valid, reach_dest = self.simulateTrajectory(trajectory, goal_epsilon, quick_check=True)
             else:
-                simulated, valid = self.simulateTrajectory(trajectory, quick_check=False)
+                simulated, valid, reach_dest = self.simulateTrajectory(trajectory, goal_epsilon, quick_check=False)
                 # plotting all of them, could do fractional plotting?
                 # especially for smaller timesteps
                 plt.plot(simulated[0, :], simulated[1, :], color=pickRandomColor())
             if valid: num_valid += 1
-        if percentage: return num_valid/num_simulations
-        return num_valid
+            if reach_dest: num_reach_dest+=1
+        if percentage: return num_valid/num_simulations, num_reach_dest/num_simulations
+        return num_valid, num_reach_dest
 
 
-    def assessTree(self, traj_resolution, visualize=False):
+    def assessTree(self, traj_resolution, goal_epsilon, visualize=False):
         """Assess the whether the trajectories in the tree remain in valid
         areas of the state space and whether they reach the goal.
         Reaching the goal is currently defined as being with goal_epsilon of the
         final state within the last two extensions.
         This metric was chosen with highly sensitive systems like the furuta
         pendulum in mind, in which a system may come exceedingly close and then
-        rapidly accelerate away.
+        rapidly accelerate away. Check for reaching the goal state can be
+        changed in simulateTrajectory() and withinGoalEpsilon().
         traj_resolution   :int:        num of simulations per trajectory
+        goal_epsilon      :float:      epsilon to use
         visualize         :bool:       whether to plot the simulated trajectories
         Note: Ideally visualizations would be moved out to separate functions
         Note: currently only for backward RRT.
         """
         num_valid = 0
+        num_reach_dest = 0
         n = 0
         self.tree.start.setSi(np.zeros((self.system.nx, self.system.nx)))
         rrt_tips = self.tree.getTipNodes(gen=False)
@@ -142,11 +169,15 @@ class RRTSimulator():
             for i in range(N-1):
                 path[i].calcKi(self.opts['R'], path[i+1])
             # plotting in here, messy
-            num_valid += self.assessTrajectory(path, traj_resolution, visualize, False)
+            new_valid, new_reached = self.assessTrajectory(path, traj_resolution,
+                                                           goal_epsilon, visualize, False)
+            num_valid+=new_valid
+            num_reach_dest+=new_reached
             n+=traj_resolution
 
             printProgressBar('Simulations complete', n, num_sim)
-            printProgressBar('| Current % valid', num_valid, n, writeover=False)
+            printProgressBar('| % valid', num_valid, n, writeover=False)
+            printProgressBar('| % reached goal', num_reach_dest, n, writeover=False)
 
     # Note: could be very helpful in diagnosing accuracy of integration schemes
     #def trajectoryStats(self, trajectory, num_simulations=1):
@@ -194,7 +225,7 @@ class RERRTSimulator(RRTSimulator):
         """
         pass
 
-    def assessTree(self, traj_resolution, visualize=False):
+    def assessTree(self, traj_resolution, goal_epsilon, visualize=False):
         """Same layout as for RRTSimulator except do not need to compute Ks as
         those have already been computed.
         traj_resolution   :int:        num of simulations per trajectory
@@ -204,6 +235,7 @@ class RERRTSimulator(RRTSimulator):
         Note: currently only for backward RRT.
         """
         num_valid = 0
+        num_reach_dest = 0
         n = 0
         rrt_tips = self.tree.getTipNodes(gen=False)
         num_traj = len(rrt_tips)
@@ -212,12 +244,16 @@ class RERRTSimulator(RRTSimulator):
         for startnode in rrt_tips:
             # likely slow due to getPath
             path = self.tree.getPath(startnode, reverse=False, gen=True)
-            # plotting in here, again messy
-            num_valid += self.assessTrajectory(path, traj_resolution, visualize, False)
+            # plotting in here, messy
+            new_valid, new_reached = self.assessTrajectory(path, traj_resolution,
+                                                           goal_epsilon, visualize, False)
+            num_valid+=new_valid
+            num_reach_dest+=new_reached
             n+=traj_resolution
 
             printProgressBar('Simulations complete', n, num_sim)
-            printProgressBar('| Current % valid', num_valid, n, writeover=False)
+            printProgressBar('| % valid', num_valid, n, writeover=False)
+            printProgressBar('| % reached goal', num_reach_dest, n, writeover=False)
 
 
 

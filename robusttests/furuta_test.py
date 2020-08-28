@@ -79,7 +79,7 @@ rerrt_tree = RERRT(start=start_state,
 # use same options for both, RERRT will use all
 options = {
     'min_dist':         1e-3,                           # :float:                       min dist to goal
-    'max_iter':         50,                             # :int:                         iterations
+    'max_iter':         70,                             # :int:                         iterations
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
     'track_children':   True,                           # :bool:                        keep record of children of node
     'extend_by':        20,                             # :int:                         num timesteps to simulate in steer function with each extension
@@ -132,14 +132,26 @@ sim1 = RRTSimulator(tree=rrt_tree,
                     opts=options)
 sim2 = RERRTSimulator(tree=rerrt_tree,
                       opts=options)
-# number of simulations for each trajectory in tree
-# ie sampling different w
-# much faster without visualization
+"""
+num_simulations
+    Number of simulations for each trajectory in tree
+    ie sampling different w
+vis_rrt/vis_rerrt
+    whether to visualize simulation
+    much faster without visualization
+goal_epsilon
+    Reaching the goal is currently defined as being with goal_epsilon of the
+    final state within the last two extensions.
+    This metric was chosen with highly sensitive systems like the furuta
+    pendulum in mind, in which a system may come exceedingly close and then
+    rapidly accelerate away.
+"""
 num_simulations=1
 vis_rrt, vis_rerrt = True, True
+goal_epsilon = 1e-2
 print(f"Simulating RRT with{'' if vis_rrt else 'out'} visualization...")
 if vis_rrt: drawScene(scene, size=(15, 15))
-sim1.assessTree(num_simulations, vis_rrt)
+sim1.assessTree(num_simulations, goal_epsilon, vis_rrt)
 if vis_rrt:
     plt.xlabel('Theta1 (Radians)', fontsize=20)
     plt.ylabel('Theta2 (Radians)', fontsize=20)
@@ -149,7 +161,7 @@ if vis_rrt:
     plt.pause(0.001)
 print(f"\nSimulating RERRT with{'' if vis_rerrt else 'out'} visualization...")
 if vis_rerrt: drawScene(scene, size=(15, 15))
-sim2.assessTree(num_simulations, vis_rerrt)
+sim2.assessTree(num_simulations, goal_epsilon, vis_rerrt)
 if vis_rerrt:
     plt.xlabel('Theta1 (Radians)', fontsize=20)
     plt.ylabel('Theta2 (Radians)', fontsize=20)
