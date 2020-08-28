@@ -247,6 +247,8 @@ class RRT:
                 if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node
             printProgressBar('Iterations complete', iter_step, opts['max_iter'])
             printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)
+        printProgressBar('Iterations complete', iter_step, opts['max_iter'])
+        printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)
         assert best_start_node is not None, 'Did not find good node to start from'
 
     def getPath(self, endnode, reverse=True, gen=False):

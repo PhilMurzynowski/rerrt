@@ -8,7 +8,7 @@ Note: Simulators may overwrite data for RRT, i.e. assigning S, K values to nodes
 import numpy as np
 import matplotlib.pyplot as plt
 
-from visuals.helper import printProgressBar
+from visuals.helper import printProgressBar, pickRandomColor
 
 
 class RRTSimulator():
@@ -40,8 +40,8 @@ class RRTSimulator():
                                             simulated trajectory or return copy
         """
         N = len(trajectory)
+        valid = True
         if quick_check:
-            valid = True
             x = trajectory[0].x
             for i in range(0, N-1):
                 #print(f'0?: {x-trajectory[i].x}')
@@ -62,7 +62,9 @@ class RRTSimulator():
                 u = np.clip(u, -self.input.limits, self.input.limits)
                 w = self.sampleUncertainty()
                 simulated[:, i+1:i+2] = self.system.nextState(simulated[:, i:i+1], u, w)
-            return simulated
+                if not self.tree.validState(simulated[:, i+1:i+2]):
+                    valid = False
+            return simulated, valid
 
     def sampleUncertainty(self):
         # initially will just call sampleEllipsoid
@@ -76,7 +78,8 @@ class RRTSimulator():
         # will use D from opts
         return np.zeros((self.system.nw, 1))
 
-    def assessTrajectory(self, trajectory, num_simulations, percentage=True):
+    def assessTrajectory(self, trajectory, num_simulations,
+                         visualize, percentage=True):
         """Assess the robustness of the trajectory via Monte Carlo, no longer
         assuming uncertainty values of 0, sampling and simulating forward.
         After simulating the trajectory, robustness is determined as a percentage
@@ -87,19 +90,37 @@ class RRTSimulator():
         num_simulations :int:               number of simulations to run
         percentage      :bool:              whether to return percentage valid
                                             or simply number of valid
+        visualize           :bool:      whether to plot the simulated trajectories
+        Note: Ideally visualizations would be moved out to separate functions
         Returns :float: percentage of valid trajectories or number of valid
         trajectories.
         """
         num_valid = 0
         for i in range(num_simulations):
-            valid = self.simulateTrajectory(trajectory, quick_check=True)
+            if not visualize:
+                valid = self.simulateTrajectory(trajectory, quick_check=True)
+            else:
+                simulated, valid = self.simulateTrajectory(trajectory, quick_check=False)
+                # plotting all of them, could do fractional plotting?
+                # especially for smaller timesteps
+                plt.plot(simulated[0, :], simulated[1, :], color=pickRandomColor())
             if valid: num_valid += 1
         if percentage: return num_valid/num_simulations
         return num_valid
 
-    def assessTree(self, traj_resolution):
-        """Note: currently only for backward RRT.
-        traj_resolution     :int:       num of simulations per trajectory
+
+    def assessTree(self, traj_resolution, visualize=False):
+        """Assess the whether the trajectories in the tree remain in valid
+        areas of the state space and whether they reach the goal.
+        Reaching the goal is currently defined as being with goal_epsilon of the
+        final state within the last two extensions.
+        This metric was chosen with highly sensitive systems like the furuta
+        pendulum in mind, in which a system may come exceedingly close and then
+        rapidly accelerate away.
+        traj_resolution   :int:        num of simulations per trajectory
+        visualize         :bool:       whether to plot the simulated trajectories
+        Note: Ideally visualizations would be moved out to separate functions
+        Note: currently only for backward RRT.
         """
         num_valid = 0
         n = 0
@@ -107,7 +128,6 @@ class RRTSimulator():
         rrt_tips = self.tree.getTipNodes(gen=False)
         num_traj = len(rrt_tips)
         num_sim = num_traj*traj_resolution
-        plt.figure() # debugging
         for startnode in rrt_tips:
             # calc TVLQR, should put into method
             # using same Q and R as rerrt
@@ -121,20 +141,14 @@ class RRTSimulator():
                 path[i-1].calcSi(self.opts['Q'], self.opts['R'], path[i])
             for i in range(N-1):
                 path[i].calcKi(self.opts['R'], path[i+1])
-            num_valid += self.assessTrajectory(path, traj_resolution, False)
+            # plotting in here, messy
+            num_valid += self.assessTrajectory(path, traj_resolution, visualize, False)
             n+=traj_resolution
 
-            # debugging
-            simulated = self.simulateTrajectory(path, quick_check=False)
-            #print([n.x for n in path])
-            #print(simulated)
-            plt.plot(simulated[0, :], simulated[1, :])
             printProgressBar('Simulations complete', n, num_sim)
             printProgressBar('| Current % valid', num_valid, n, writeover=False)
 
-        plt.draw()
-
-    # may be unnecessary
+    # Note: could be very helpful in diagnosing accuracy of integration schemes
     #def trajectoryStats(self, trajectory, num_simulations=1):
     #    """Statics on trajectory. Document more.
     #    trajectory      [:RRTNode:, ]       trajectory, list/tuple of nodes
@@ -172,13 +186,61 @@ class RRTSimulator():
 class RERRTSimulator(RRTSimulator):
 
 
+    def __init__(self, tree, opts):
+        super().__init__(tree, opts)
+
     def assessEllipsoids(self):
         """Assess whether trajectory staying within ellipsoids
         """
         pass
 
-    def assessTree(self, num_simulations):
-        """Note: currently only for backward RRT.
+    def assessTree(self, traj_resolution, visualize=False):
+        """Same layout as for RRTSimulator except do not need to compute Ks as
+        those have already been computed.
+        traj_resolution   :int:        num of simulations per trajectory
+        visualize         :bool:       whether to plot the simulated trajectories
+        figsize           :(int, int): size for figure to be plotted
+        Note: Ideally visualizations would be moved out to separate functions
+        Note: currently only for backward RRT.
         """
-        for startnode in self.tree.getTipNodes():
-           pass
+        num_valid = 0
+        n = 0
+        rrt_tips = self.tree.getTipNodes(gen=False)
+        num_traj = len(rrt_tips)
+        num_sim = num_traj*traj_resolution
+        # messy to add visualization in here, refactor if necessary
+        for startnode in rrt_tips:
+            # likely slow due to getPath
+            path = self.tree.getPath(startnode, reverse=False, gen=True)
+            # plotting in here, again messy
+            num_valid += self.assessTrajectory(path, traj_resolution, visualize, False)
+            n+=traj_resolution
+
+            printProgressBar('Simulations complete', n, num_sim)
+            printProgressBar('| Current % valid', num_valid, n, writeover=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

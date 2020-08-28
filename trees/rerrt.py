@@ -235,6 +235,8 @@ class RERRT(RRT):
                     if new_dist < best_dist: best_dist, best_start_node = new_dist, new_node
             printProgressBar('Iterations complete', iter_step, opts['max_iter'])
             printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)
+        printProgressBar('Iterations complete', iter_step, opts['max_iter'])
+        printProgressBar('| Distance covered', initial_dist-best_dist, initial_dist, writeover=False)
         # repoprogate from best start node for accurate graphing of final path
         assert best_start_node is not None, "Didn't find good node to start from"
         final_propogation_valid = self.robustnessCheck(best_start_node, opts)

@@ -38,6 +38,10 @@ def drawScene(scene, size=(5, 5)):
     plt.figure(figsize=size)
     scene.plotScene()
 
+
+"""
+Drawing shapes section
+"""
 def drawRectangle(rectangle, color='cyan', fill=True):
     """Draw given Rectangle object with color and fill options.
     """
@@ -52,6 +56,10 @@ def drawEllipsoid(ellipse, color="gray", fill=False):
     ellip = patches.Ellipse(ellipse.c, ellipse.w, ellipse.h, ellipse.angle, color=color, fill=fill)
     ax.add_artist(ellip)
 
+
+"""
+Drawing trees section
+"""
 def plotNode(node, new_figure=False, color=None, reachable=False, lines=False, ellipse=False):
     """Plot a node.
     node            :RERRTNode:         node to plot
@@ -154,3 +162,10 @@ def drawEllipsoidTree(tree, opts):
             drawEllipsoids(path, color=pickRandomColor())
     elif opts['direction'] == 'forward':
         raise NotImplementedError('Not implemented yet for forward RRT')
+
+
+"""
+Simulation visuals
+"""
+def drawSimulation(tree):
+    pass

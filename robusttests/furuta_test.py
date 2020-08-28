@@ -56,8 +56,8 @@ collision_function = col.selectCollisionChecker('erHalfMtxPts')
 
 # rrt setup
 rrt_input = Input(dim=sys_opts['nu'], type_='random')
-rrt_input.setLimits(np.array([[10, 0]]).T)
-rrt_input.determinePossibleActions(range_=0.1, resolutions=np.array([10, 1]))
+rrt_input.setLimits(np.array([[4, 0]]).T)
+rrt_input.determinePossibleActions(range_=0.25, resolutions=np.array([10, 1]))
 rrt_input.setNumSamples(3)
 rrt_tree = RRT(start=start_state,
            goal=goal_state,
@@ -67,8 +67,8 @@ rrt_tree = RRT(start=start_state,
            dist_func=dist_metric)
 # rerrt setup
 rerrt_input = Input(dim=sys_opts['nu'], type_='deterministic')
-rerrt_input.setLimits(np.array([[10, 0]]).T)
-rerrt_input.determinePossibleActions(range_=0.1, resolutions=np.array([3, 1]))
+rerrt_input.setLimits(np.array([[4, 0]]).T)
+rerrt_input.determinePossibleActions(range_=0.25, resolutions=np.array([3, 1]))
 rerrt_tree = RERRT(start=start_state,
              goal=goal_state,
              system=sys,
@@ -78,8 +78,8 @@ rerrt_tree = RERRT(start=start_state,
              collision_func=collision_function)
 # use same options for both, RERRT will use all
 options = {
-    'min_dist':         1e-1,                           # :float:                       min dist to goal
-    'max_iter':         100,                             # :int:                         iterations
+    'min_dist':         1e-3,                           # :float:                       min dist to goal
+    'max_iter':         50,                             # :int:                         iterations
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
     'track_children':   True,                           # :bool:                        keep record of children of node
     'extend_by':        20,                             # :int:                         num timesteps to simulate in steer function with each extension
@@ -133,10 +133,36 @@ sim1 = RRTSimulator(tree=rrt_tree,
 sim2 = RERRTSimulator(tree=rerrt_tree,
                       opts=options)
 # number of simulations for each trajectory in tree
-num_simulations=10
-print('Simulating RRT...')
-sim1.assessTree(num_simulations)
-#print('Simulating RERRT...')
-#sim2.assessTree(num_simulations)
+# ie sampling different w
+# much faster without visualization
+num_simulations=1
+vis_rrt, vis_rerrt = True, True
+print(f"Simulating RRT with{'' if vis_rrt else 'out'} visualization...")
+if vis_rrt: drawScene(scene, size=(15, 15))
+sim1.assessTree(num_simulations, vis_rrt)
+if vis_rrt:
+    plt.xlabel('Theta1 (Radians)', fontsize=20)
+    plt.ylabel('Theta2 (Radians)', fontsize=20)
+    plt.title('Note: Positions are modulo 2pi',fontsize=16)
+    plt.suptitle('Furuta RRT Simulation',fontsize=25, y=0.925)
+    plt.draw()
+    plt.pause(0.001)
+print(f"\nSimulating RERRT with{'' if vis_rerrt else 'out'} visualization...")
+if vis_rerrt: drawScene(scene, size=(15, 15))
+sim2.assessTree(num_simulations, vis_rerrt)
+if vis_rerrt:
+    plt.xlabel('Theta1 (Radians)', fontsize=20)
+    plt.ylabel('Theta2 (Radians)', fontsize=20)
+    plt.title('Note: Positions are modulo 2pi',fontsize=16)
+    plt.suptitle('Furuta RERRT Simulation',fontsize=25, y=0.925)
+    plt.draw()
+    plt.pause(0.001)
+
+
 print('\nFinished\n')
 plt.show()
+
+
+
+
+

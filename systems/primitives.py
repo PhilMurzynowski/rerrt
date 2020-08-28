@@ -75,6 +75,9 @@ class System():
         """
         if w is None:
             w = np.zeros((self.nw, 1))
+        # make sure getting forward in time
+        if np.sign(self.dt) == -1:
+            self.dt = -self.dt
         # format for autodiff
         xuw = np.vstack((x, u, w))
         xuw_autodiff = initializeAutoDiff(xuw)
