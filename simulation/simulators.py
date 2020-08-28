@@ -155,6 +155,7 @@ class RRTSimulator():
         rrt_tips = self.tree.getTipNodes(gen=False)
         num_traj = len(rrt_tips)
         num_sim = num_traj*traj_resolution
+        print(f'{num_traj} trajectory(s) in tree.')
         for startnode in rrt_tips:
             # calc TVLQR, should put into method
             # using same Q and R as rerrt
@@ -240,6 +241,7 @@ class RERRTSimulator(RRTSimulator):
         rrt_tips = self.tree.getTipNodes(gen=False)
         num_traj = len(rrt_tips)
         num_sim = num_traj*traj_resolution
+        print(f'{num_traj} trajectory(s) in tree.')
         # messy to add visualization in here, refactor if necessary
         for startnode in rrt_tips:
             # likely slow due to getPath
