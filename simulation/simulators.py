@@ -21,6 +21,9 @@ class RRTSimulator():
         self.system = tree.system
         self.input = tree.input
         self.opts = opts
+        # vars used for sampleEllipsoid function
+        self.Dinv = np.linalg.inv(self.opts['D'])
+        self.sampbounds = np.linalg.eigvals(self.Dinv)
 
     def withinGoalEpsilon(self, state, goal_epsilon):
         """Checks whether state is within epsilon of the goal according to
@@ -97,7 +100,10 @@ class RRTSimulator():
     def sampleEllipsoid(self):
         # must implement
         # will use D from opts
-        return np.zeros((self.system.nw, 1))
+        sample = None
+        while sample is None or sample.T@self.Dinv@sample > 1:
+            sample = np.random.uniform(-self.sampbounds, self.sampbounds, (self.system.nw, 1))
+        return sample
 
     def assessTrajectory(self, trajectory, num_simulations,
                          goal_epsilon, visualize, percentage=True):
