@@ -96,7 +96,7 @@ run_options = {
     'E0':               0.10*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
     'max_dims':         np.array([5, 5]),               # :nparray: (2,)                maximum axis length of ellipse in each dimension
                                                         #                               currently only 2D supported
-    'Q':                np.diag((5, 5, 0, 0, 0)),       # :nparray: (nx x nx)           TVLQR Q
+    'Q':                np.diag((1, 1, 0, 0, 0)),       # :nparray: (nx x nx)           TVLQR Q
     'R':                np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           TVLQR R
 }
 
