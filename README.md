@@ -22,4 +22,4 @@ Sufficiently accurate output and results are provided from car_test.py, however 
 
 Below is an image generated from examples/car_rerrt.py.
 Large uncertainty values and hence large ellipsoids are shown for easy visualization.
-![Image of Car RERRT example](https://github.com/PhilMurzynowski/rerrt/tree/master/images/car_rerrt_2.png)
+![Image of Car RERRT example](https://github.com/PhilMurzynowski/rerrt/tree/master/images/car_rerrt_2.png?raw=true)
