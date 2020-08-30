@@ -30,7 +30,7 @@ obstacles.append(Rectangle([7, 4], 2.5, 1.5, angle=30.0))
 scene = Scene(start, goal, region, obstacles)
 
 sys_opts = {
-    'dt': 0.005,
+    'dt': 0.003,
     'nx': 5,
     'nu': 2,
     'nw': 2
@@ -43,9 +43,9 @@ collision_function = col.selectCollisionChecker('erHalfMtxPts')
 
 # rrt setup
 rrt_input = Input(dim=sys_opts['nu'], type_='random')
-rrt_input.setLimits(np.array([[10, 10]]).T)
+rrt_input.setLimits(np.array([[5, 5]]).T)
 rrt_input.determinePossibleActions(range_=0.5, resolutions=np.array([5, 5]))
-rrt_input.setNumSamples(10)
+rrt_input.setNumSamples(15)
 rrt_tree = RRT(start=start_state,
            goal=goal_state,
            system=sys,
@@ -54,7 +54,7 @@ rrt_tree = RRT(start=start_state,
            dist_func=dist_metric)
 # rerrt setup
 rerrt_input = Input(dim=sys_opts['nu'], type_='deterministic')
-rerrt_input.setLimits(np.array([[10, 10]]).T)
+rerrt_input.setLimits(np.array([[5, 5]]).T)
 rerrt_input.determinePossibleActions(range_=0.5, resolutions=np.array([2, 3]))
 rerrt_tree = RERRT(start=start_state,
              goal=goal_state,
@@ -65,16 +65,16 @@ rerrt_tree = RERRT(start=start_state,
              collision_func=collision_function)
 # use same options for both, RERRT will use all
 options = {
-    'min_dist':         1e-3,                           # :float:                       min dist to goal
-    'max_iter':         150,                             # :int:                         iterations
+    'min_dist':         1e-1,                           # :float:                       min dist to goal
+    'max_iter':         200,                             # :int:                         iterations
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
     'track_children':   True,                           # :bool:                        keep record of children of node
-    'extend_by':        20,                             # :int:                         num timesteps to simulate in steer function with each extension
+    'extend_by':        40,                             # :int:                         num timesteps to simulate in steer function with each extension
     'goal_sample_rate': 0.20,                           # :float:                       goal sample freq. (out of 1)
     'sample_dim':       2,                              # :int:                         Determine how many dimensions to sample in, e.g. 2 for 2D
-    'D':                1e-3*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
-    'E0':               1e-9*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
-    'max_dims':         np.array([1, 1]),               # :nparray: (2,)                maximum axis length of ellipse in each dimension
+    'D':                1e-2*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
+    'E0':               1e-6*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
+    'max_dims':         np.array([1.5, 1.5]),               # :nparray: (2,)                maximum axis length of ellipse in each dimension
                                                         #                               currently only 2D supported
     'Q':                np.diag((1, 1, 0, 0, 0)),   # :nparray: (nx x nx)           TVLQR Q
     'R':                np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           TVLQR R
@@ -155,8 +155,7 @@ if vis_rerrt:
     plt.ylabel('Theta2 (Radians)', fontsize=20)
     plt.title('Note: Positions are modulo 2pi',fontsize=16)
     plt.suptitle('Furuta RERRT Simulation',fontsize=25, y=0.925)
-    plt.draw()
-    plt.pause(0.001)
+    plt.draw() plt.pause(0.001)
 
 
 print('\nFinished\n')

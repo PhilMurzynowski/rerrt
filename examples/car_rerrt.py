@@ -52,8 +52,7 @@ sys = Car(sys_opts)
 
 #   'dt'   :float:  timestep
 #   'nx'   :int:    dim of state
-#   'nu'   :int:    dim of input
-#   'nw'   :int:    dim of uncertainty
+#   'nu'   :int:    dim of input #   'nw'   :int:    dim of uncertainty
 
 # named input_ to avoid conflict with python keyword input
 input_ = Input(dim=sys_opts['nu'], type_='deterministic')
@@ -85,8 +84,8 @@ tree = RERRT(start=start_state,
 
 # options to configure RERRT initialization and expansion
 run_options = {
-    'min_dist':         1e-1,                             # :float:                       min dist to goal
-    'max_iter':         60,                            # :int:                         iterations
+    'min_dist':         1e-2,                             # :float:                       min dist to goal
+    'max_iter':         200,                            # :int:                         iterations
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
     'track_children':   True,                           # :bool:                        keep record of children of node
     'extend_by':        20,                             # :int:                         num timesteps to simulate in steer function with each extension

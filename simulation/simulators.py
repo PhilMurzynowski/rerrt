@@ -98,6 +98,7 @@ class RRTSimulator():
         # but framework here to generalize and for readability
         # for example may want to sample from surface of ellipsoid
         # for maximum uncertainty
+        #   can do so by sampling in spherical coordinates and projecting?
         if self.Dinv is None or self.Dinv_sampbounds is None:
             self.Dinv = np.linalg.inv(self.opts['D'])
             self.Dinv_sampbounds = 1/np.sqrt(np.linalg.eigvals(self.Dinv))
@@ -113,9 +114,14 @@ class RRTSimulator():
         # partially optimized, can get few thousand samples in second
         # can use spherical coordinates to optimize, project distribution
         # using CDF
-        sample = None
-        while sample is None or sample.T@invertedmtx@sample > 1:
+        # sampling periphery of ellipse, so not uniform from within ellipse
+        # using below method to sample within an ellipse, ie val < 1, val > 0
+        # is fine, but would be much better to sample from surface directly
+        # if want to check boundaries
+        val = np.Inf
+        while val > 1 or val < 0.9:
             sample = np.random.uniform(-sampbounds, sampbounds, (dim, 1))
+            val = sample.T@invertedmtx@sample
         return sample
 
     def assessTrajectory(self, trajectory, num_simulations,

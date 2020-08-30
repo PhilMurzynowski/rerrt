@@ -5,7 +5,7 @@ If you have drake installed locally, add this directory to your python path
 ```shell
 user@userpc:~$ export PYTHONPATH="${PYTHONPATH}:pathtorerrt/rerrt"
 ```
-and run examples can be run with
+and examples can be run with
 ```python
 python3 examples/[example_file].py
 ```
@@ -18,4 +18,8 @@ python3 robusttests/furuta_test.py
 ```
 The script grows RRT and RERRT trees in the same manner as in the examples files, then simulates the trees with uncertainty and outputs brief statistics on whether trajectories remain in the valid state space and whether they come within a set epsilon of the desired final state.
 
-Example output and results are provided below from car_test.py, however a code update with a more precise integration scheme is necessary for significant results for the furuta system, due to the highly sensitive nature of the dynamics which currently suffer from numerics errors in simulation.
+Sufficiently accurate output and results are provided from car_test.py, however a code update with a more precise integration scheme is necessary for significant results for the furuta system, due to the highly sensitive nature of the dynamics which currently suffer from numeric errors in simulation.
+
+Below is an image generated from examples/car_rerrt.py.
+Large uncertainty values and hence large ellipsoids are shown for easy visualization.
+![Image of Car RERRT example](https://github.com/PhilMurzynowski/rerrt/car_rerrt_2.png)
