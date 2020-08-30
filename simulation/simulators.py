@@ -21,9 +21,12 @@ class RRTSimulator():
         self.system = tree.system
         self.input = tree.input
         self.opts = opts
-        # vars used for sampleEllipsoid function
-        self.Dinv = np.linalg.inv(self.opts['D'])
-        self.sampbounds = np.linalg.eigvals(self.Dinv)
+        # vars used for sampleUncertainty function
+        self.Dinv = None
+        self.Dinv_sampbounds = None
+        # vars used for sampleInitUncertainty function
+        self.Einv = None
+        self.Einv_sampbounds = None
 
     def withinGoalEpsilon(self, state, goal_epsilon):
         """Checks whether state is within epsilon of the goal according to
@@ -58,7 +61,7 @@ class RRTSimulator():
         valid = True
         reach_dest = False
         if quick_check:
-            x = trajectory[0].x
+            x = trajectory[0].x + self.sampleInitUncertainty()
             for i in range(0, N-1):
                 #print(f'0?: {x-trajectory[i].x}')
                 u = trajectory[i].u+trajectory[i].K@(trajectory[i].x-x)
@@ -75,7 +78,7 @@ class RRTSimulator():
             return valid, reach_dest
         else:
             simulated = np.zeros((self.system.nx, N))
-            simulated[:, 0:1] = trajectory[0].x
+            simulated[:, 0:1] = trajectory[0].x + self.sampleInitUncertainty()
             for i in range(0, N-1):
                 #print(f'0?: {trajectory[i].x-simulated[:, i:i+1]}')
                 u = trajectory[i].u+trajectory[i].K@(trajectory[i].x-simulated[:,i:i+1])
@@ -95,14 +98,24 @@ class RRTSimulator():
         # but framework here to generalize and for readability
         # for example may want to sample from surface of ellipsoid
         # for maximum uncertainty
-        return self.sampleEllipsoid()
+        if self.Dinv is None or self.Dinv_sampbounds is None:
+            self.Dinv = np.linalg.inv(self.opts['D'])
+            self.Dinv_sampbounds = 1/np.sqrt(np.linalg.eigvals(self.Dinv))
+        return self.sampleEllipsoid(self.Dinv, self.Dinv_sampbounds, self.system.nw)
 
-    def sampleEllipsoid(self):
-        # must implement
-        # will use D from opts
+    def sampleInitUncertainty(self):
+        if self.Einv is None or self.Einv_sampbounds is None:
+            self.Einv = np.linalg.inv(self.opts['E0'])
+            self.Einv_sampbounds = 1/np.sqrt(np.linalg.eigvals(self.Einv))
+        return self.sampleEllipsoid(self.Einv, self.Einv_sampbounds, self.system.nx)
+
+    def sampleEllipsoid(self, invertedmtx, sampbounds, dim):
+        # partially optimized, can get few thousand samples in second
+        # can use spherical coordinates to optimize, project distribution
+        # using CDF
         sample = None
-        while sample is None or sample.T@self.Dinv@sample > 1:
-            sample = np.random.uniform(-self.sampbounds, self.sampbounds, (self.system.nw, 1))
+        while sample is None or sample.T@invertedmtx@sample > 1:
+            sample = np.random.uniform(-sampbounds, sampbounds, (dim, 1))
         return sample
 
     def assessTrajectory(self, trajectory, num_simulations,

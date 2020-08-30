@@ -63,17 +63,26 @@ class Furuta(System):
         self.b2 = sys_config['b2']
         self.J1 = sys_config['J1']
         self.J2 = sys_config['J2']
+        # saving sysconfig incase want to add uncertainty to parameters
+        self.sys_config = sys_config
 
     def dynamics(self, x, u, w=None):
         if w is None:
             w = np.zeros((self.nw, 1))
 
+        # uncertainty for two massess
+        self.m1 = self.sys_config['m1'] + w[0, 0]
+        self.m2 = self.sys_config['m2'] + w[1, 0]
+
         theta1 = x[0, 0]
         theta2 = x[1, 0]
         theta1_dot = x[2, 0]
         theta2_dot = x[3, 0]
-        tau1 = u[0, 0] + w[0, 0]    # temporarily added uncertainty to actuation
-        tau2 = u[1, 0] + w[1, 0]    # usually no actuation here, essentially disturbance
+        # could make torque inputs uncertain with below two lines
+        #tau1 = u[0, 0] + w[0, 0]    # temporarily added uncertainty to actuation
+        #tau2 = u[1, 0] + w[1, 0]    # usually no actuation here, essentially disturbance
+        tau1 = u[0, 0]
+        tau2 = u[1, 0]
 
         g = 9.8
         # applying simplifications

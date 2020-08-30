@@ -19,9 +19,9 @@ from visuals.plotting import (Scene, drawScene, drawTree, drawPath,
                               drawReachable, drawEllipsoids, drawEllipsoidTree)
 
 # general setup for both rrt and rerrt
-start = [np.pi, 0]
+start = [np.pi/2, 0]
 goal = [0, np.pi]
-region = Rectangle([-2*np.pi, -2*np.pi], 4*np.pi, 4*np.pi)
+region = Rectangle([-2*np.pi, -2*np.pi], 6*np.pi, 6*np.pi)
 start_state = np.array(start + [0, 0]).reshape(4, 1)
 goal_state = np.array(goal + [0, 0]).reshape(4, 1)
 obstacles = []
@@ -56,8 +56,8 @@ collision_function = col.selectCollisionChecker('erHalfMtxPts')
 
 # rrt setup
 rrt_input = Input(dim=sys_opts['nu'], type_='random')
-rrt_input.setLimits(np.array([[4, 0]]).T)
-rrt_input.determinePossibleActions(range_=0.25, resolutions=np.array([10, 1]))
+rrt_input.setLimits(np.array([[2, 0]]).T)
+rrt_input.determinePossibleActions(range_=0.5, resolutions=np.array([10, 1]))
 rrt_input.setNumSamples(3)
 rrt_tree = RRT(start=start_state,
            goal=goal_state,
@@ -67,8 +67,8 @@ rrt_tree = RRT(start=start_state,
            dist_func=dist_metric)
 # rerrt setup
 rerrt_input = Input(dim=sys_opts['nu'], type_='deterministic')
-rerrt_input.setLimits(np.array([[4, 0]]).T)
-rerrt_input.determinePossibleActions(range_=0.25, resolutions=np.array([3, 1]))
+rerrt_input.setLimits(np.array([[2, 0]]).T)
+rerrt_input.determinePossibleActions(range_=0.5, resolutions=np.array([3, 1]))
 rerrt_tree = RERRT(start=start_state,
              goal=goal_state,
              system=sys,
@@ -79,15 +79,15 @@ rerrt_tree = RERRT(start=start_state,
 # use same options for both, RERRT will use all
 options = {
     'min_dist':         1e-3,                           # :float:                       min dist to goal
-    'max_iter':         70,                             # :int:                         iterations
+    'max_iter':         150,                             # :int:                         iterations
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
     'track_children':   True,                           # :bool:                        keep record of children of node
     'extend_by':        20,                             # :int:                         num timesteps to simulate in steer function with each extension
     'goal_sample_rate': 0.20,                           # :float:                       goal sample freq. (out of 1)
     'sample_dim':       2,                              # :int:                         Determine how many dimensions to sample in, e.g. 2 for 2D
-    'D':                0.10*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
-    'E0':               0.10*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
-    'max_dims':         np.array([5, 5]),               # :nparray: (2,)                maximum axis length of ellipse in each dimension
+    'D':                5e-2*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
+    'E0':               1e-9*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
+    'max_dims':         np.array([2e-1, 2e-1]),               # :nparray: (2,)                maximum axis length of ellipse in each dimension
                                                         #                               currently only 2D supported
     'Q':                10*np.diag((1, 1, 0.5, 0.5)),   # :nparray: (nx x nx)           TVLQR Q
     'R':                np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           TVLQR R
@@ -146,9 +146,12 @@ goal_epsilon
     pendulum in mind, in which a system may come exceedingly close and then
     rapidly accelerate away.
 """
-num_simulations=1
+num_simulations=10
 vis_rrt, vis_rerrt = True, True
-goal_epsilon = 1e-2
+# basically testing if stayed within ellipsoids
+# but only as a heuristic, as likely using different distanceMetric than l2norm
+# as the ellipse size is defined in theta1, theta2 space
+goal_epsilon = options['max_dims'][0]/2
 print(f"Simulating RRT with{'' if vis_rrt else 'out'} visualization...")
 if vis_rrt: drawScene(scene, size=(15, 15))
 sim1.assessTree(num_simulations, goal_epsilon, vis_rrt)

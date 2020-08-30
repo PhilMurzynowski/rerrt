@@ -100,16 +100,16 @@ tree = RERRT(start=start_state,
 
 # options to configure RERRT initialization and expansion
 run_options = {
-    'min_dist':         1e-1,                             # :float:                       min dist to goal
-    'max_iter':         400,                            # :int:                         iterations
+    'min_dist':         1e-3,                             # :float:                       min dist to goal
+    'max_iter':         150,                            # :int:                         iterations
     'direction':        'backward',                     # :'backward'/'forward':        determine tree growth direction
     'track_children':   True,                           # :bool:                        keep record of children of node
     'extend_by':        20,                             # :int:                         num timesteps to simulate in steer function with each extension
     'goal_sample_rate': 0.20,                           # :float:                       goal sample freq. (out of 1)
     'sample_dim':       2,                              # :int:                         Determine how many dimensions to sample in, e.g. 2 for 2D
-    'D':                0.10*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
-    'E0':               0.10*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
-    'max_dims':         np.array([5, 5]),               # :nparray: (2,)                maximum axis length of ellipse in each dimension
+    'D':                3e-2*np.eye(sys_opts['nw']),    # :nparray: (nw x nw)           ellipse describing uncertainty
+    'E0':               1e-3*np.eye(sys_opts['nx']),    # :nparray: (nx x nx)           initial state uncertainty
+    'max_dims':         np.array([2e-1, 2e-1]),               # :nparray: (2,)                maximum axis length of ellipse in each dimension
                                                         #                               currently only 2D supported
     'Q':                np.diag((10, 10, 5, 5)),        # :nparray: (nx x nx)           TVLQR Q
     'R':                np.eye(sys_opts['nu']),         # :nparray: (nu x nu)           TVLQR R

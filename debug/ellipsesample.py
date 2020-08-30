@@ -13,7 +13,7 @@ from utils.metrics import l2norm2D, furutaDistanceMetric
 from systems.primitives import Input
 from systems.examples import Furuta
 from simulation.simulators import RRTSimulator
-from visuals.helper import pickRandomColor
+from visuals.helper import pickRandomColor, printProgressBar
 from visuals.plotting import (Scene, drawScene, drawTree, drawPath)
 
 start = [np.pi, 0]
@@ -92,9 +92,13 @@ sim1 = RRTSimulator(tree=rrt_tree,
                     opts=options)
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
+n = 4000
+plotting = np.zeros((sys.nw, n))
 for i in range(n):
-    s = sim1.sampleEllipsoid()
-    ax.scatter(s[0, 0], s[1, 0], s[2, 0])
+    plotting[:, i:i+1] = sim1.sampleEllipsoid()
+    printProgressBar('Samples: ', i, n)
+print('\n')
+ax.scatter(plotting[0, :], plotting[1, :], plotting[2, :])
 plt.draw()
 
 #num_simulations=1
