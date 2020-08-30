@@ -119,7 +119,7 @@ class RRTSimulator():
         # is fine, but would be much better to sample from surface directly
         # if want to check boundaries
         val = np.Inf
-        while val > 1 or val < 0.9:
+        while val > 1 or val < 0:
             sample = np.random.uniform(-sampbounds, sampbounds, (dim, 1))
             val = sample.T@invertedmtx@sample
         return sample
