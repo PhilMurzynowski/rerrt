@@ -1,6 +1,7 @@
 Robust Ellipsoid RRT, a robust approach to sampling based planning methods.
 Full documentation nearing completion.
 
+This project makes use of RobotLocomotion/drake, though it currently only uses the AutoDiff python bindings.
 If you have drake installed locally, add this directory to your python path 
 ```shell
 user@userpc:~$ export PYTHONPATH="${PYTHONPATH}:pathtorerrt/rerrt"
