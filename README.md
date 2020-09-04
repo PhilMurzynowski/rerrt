@@ -25,8 +25,11 @@ Sufficiently accurate output and results are provided from car_test.py, however 
 
 Below are images generated from robusttests/car_test.py.
 
-<img align="left" src="./images/runs/run3/Figure_2.png?raw=true" alt="RERRT" title="RERRT" hspace="20"/>
-<img align="right" src="./images/runs/run5/Figure_1.png?raw=true" alt="RRT" title="RRT" hspace="20"/>
+| | |
+|:-------------------------:|:-------------------------:|
+|<img width="1604" alt="" src="/images/runs/run3/Figure_2.png?raw=true">  |  <img width="1604" alt="" src="">|
+|<img width="1604" alt="" src="/images/runs/run3/Figure_4.png?raw=true">  |  <img width="1604" alt="" src="">|
+|<img width="1604" alt="" src="/images/runs/run3/Figure_6.png?raw=true">  |  <img width="1604" alt="" src="">|
 
 ![RERRT](/images/runs/run3/Figure_2.png?raw=true) ![RRT](/images/runs/run5/Figure_1.png?raw=true)
 ![RERRT sim with uncertainty](/images/runs/run3/Figure_4.png?raw=true) ![RRT sim with uncertainty](/images/runs/run5/Figure_3.png?raw=true)
