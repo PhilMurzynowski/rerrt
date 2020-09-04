@@ -24,6 +24,7 @@ The script grows RRT and RERRT trees in the same manner as in the examples files
 Sufficiently accurate output and results are provided from car_test.py, however a code update with a more precise integration scheme is necessary for significant results for the furuta system, due to the highly sensitive nature of the dynamics which currently suffer from numeric errors in simulation.
 
 Below are images generated from robusttests/car_test.py.
+For clarification, the tree is grown backwards from the goal which is at (0,0), and the specific settings are listed in the robusttests/car_test.py file.
 
 | | |
 |:-------------------------:|:-------------------------:|
