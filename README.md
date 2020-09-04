@@ -17,10 +17,16 @@ An example of a simple assessment of the robustness of the system is provided as
 python3 robusttests/car_test.py
 python3 robusttests/furuta_test.py
 ```
+Note: simulation used in robusttests currently inefficient, large potential for optimization
+
 The script grows RRT and RERRT trees in the same manner as in the examples files, then simulates the trees with uncertainty and outputs brief statistics on whether trajectories remain in the valid state space and whether they come within a set epsilon of the desired final state.
 
 Sufficiently accurate output and results are provided from car_test.py, however a code update with a more precise integration scheme is necessary for significant results for the furuta system, due to the highly sensitive nature of the dynamics which currently suffer from numeric errors in simulation.
 
-Below is an image generated from examples/car_rerrt.py.
-Large uncertainty values and hence large ellipsoids are shown for easy visualization.
-![Image of Car RERRT example](/images/car_rerrt_2.png?raw=true)
+Below are images generated from robusttests/car_test.py.
+![](/images/runs/run3/Figure_2.png?raw=true)
+![](/images/runs/run3/Figure_6.png?raw=true)
+![](/images/runs/run3/Figure_4.png?raw=true)
+![](/images/runs/run5/Figure_1.png?raw=true)
+![](/images/runs/run5/Figure_5.png?raw=true)
+![](/images/runs/run5/Figure_3.png?raw=true)
