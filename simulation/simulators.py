@@ -118,8 +118,10 @@ class RRTSimulator():
         # using below method to sample within an ellipse, ie val < 1, val > 0
         # is fine, but would be much better to sample from surface directly
         # if want to check boundaries
+        #return np.zeros((dim, 1))
+        # needs to be updated for speed
         val = np.Inf
-        while val > 1 or val < 0:
+        while val > 1 or val < 0.9:
             sample = np.random.uniform(-sampbounds, sampbounds, (dim, 1))
             val = sample.T@invertedmtx@sample
         return sample
