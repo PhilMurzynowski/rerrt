@@ -24,9 +24,6 @@ The script grows RRT and RERRT trees in the same manner as in the examples files
 Sufficiently accurate output and results are provided from car_test.py, however a code update with a more precise integration scheme is necessary for significant results for the furuta system, due to the highly sensitive nature of the dynamics which currently suffer from numeric errors in simulation.
 
 Below are images generated from robusttests/car_test.py.
-![RERRT](/images/runs/run3/Figure_2.png?raw=true)
-![RERRT sim no uncertainty](/images/runs/run3/Figure_6.png?raw=true)
-![RERRT sim with uncertainty](/images/runs/run3/Figure_4.png?raw=true)
-![RRT](/images/runs/run5/Figure_1.png?raw=true)
-![RRT sim no uncertainty](/images/runs/run5/Figure_5.png?raw=true)
-![RRT sim with uncertainty](/images/runs/run5/Figure_3.png?raw=true)
+![RERRT](/images/runs/run3/Figure_2.png?raw=true) ![RRT](/images/runs/run5/Figure_1.png?raw=true)
+![RERRT sim with uncertainty](/images/runs/run3/Figure_4.png?raw=true) ![RRT sim with uncertainty](/images/runs/run5/Figure_3.png?raw=true)
+![RERRT sim no uncertainty](/images/runs/run3/Figure_6.png?raw=true) ![RRT sim no uncertainty](/images/runs/run5/Figure_5.png?raw=true)
