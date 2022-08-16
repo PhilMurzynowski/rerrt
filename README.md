@@ -1,5 +1,4 @@
-Robust Ellipsoid RRT, a robust approach to sampling based planning methods.
-Full documentation nearing completion.
+Robust Ellipsoid RRT, a robust approach to sampling based planning methods. Written during for research in the MIT Robot Locomotion Group in 2020.
 
 This project makes use of RobotLocomotion/drake, though it currently only uses the AutoDiff python bindings.
 If you have drake installed locally, add this directory to your python path 
